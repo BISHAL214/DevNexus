@@ -37,7 +37,7 @@ export default function RootLayout({
         <Navbar />
         {children}
           <MobileDockNavigation />
-        <footer className="h-[50px] text-white bg-black hidden md:flex flex-shrink-0 gap-5 items-center justify-center text-center">
+        {/* <footer className="h-[50px] text-white bg-black hidden md:flex flex-shrink-0 gap-5 items-center justify-center text-center">
           Created with ❤️ by Bishal Mondal
           <Link
             className="z-50"
@@ -46,7 +46,7 @@ export default function RootLayout({
           >
             <IconBrandLinkedin />
           </Link>
-        </footer>
+        </footer> */}
         <Toaster />
       </body>
     </html>

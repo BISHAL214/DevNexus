@@ -68,7 +68,12 @@ export const getUserById = async (firebase_uid: string) => {
     const cached_user = await getFromCache(cacheKey);
     if (cached_user) {
       console.log("Returning cached user");
-      return cached_user;
+      return {
+        success: true,
+        error: false,
+        message: "User Found",
+        user_data: cached_user,
+      };
     }
 
     // If not in cache, fetch user data from the database
@@ -268,33 +273,44 @@ export const getRecommendedDevelopers = async (userId: string) => {
         select: { embedding: true },
       }),
       prisma.user.findMany({
-        select: { id: true, name: true, skills: true, embedding: true },
+        select: {
+          id: true,
+          name: true,
+          embedding: true,
+          cover_image: true,
+          avatar: true,
+          headline: true,
+          skills: true,
+          location: true,
+          followers: true,
+        },
       }),
     ]);
 
-    if (!user || !allDevelopers) return [];
+    if (!user || !allDevelopers) {
+      return {
+        success: false,
+        message: "User or developers not found",
+        recommendedDevelopers: [],
+      };
+    }
 
-    // const user = await prisma.user.findUnique({
-    //   where: { id: userId },
-    //   select: { embedding: true },
-    // });
+    // console.log(
+    //   "All developers from --getRecommendedDevelopers--:",
+    //   allDevelopers.map((dev) => dev.name)
+    // );
 
-    // if (!user) return [];
-
-    // const allDevelopers = await prisma.user.findMany({
-    //   select: { id: true, name: true, skills: true, embedding: true },
-    // });
-
-    console.log(
-      "All developers from --getRecommendedDevelopers--:",
-      allDevelopers.map((dev) => dev.name)
-    );
-
-    if (allDevelopers.length <= 1) return [];
+    if (allDevelopers.length <= 1) {
+      return {
+        success: false,
+        message: "Not enough developers to recommend",
+        recommendedDevelopers: [],
+      };
+    }
 
     const otherDevelopers = allDevelopers.filter((dev) => dev.id !== userId); // Exclude current user
 
-    console.log("Embeddings type:", typeof otherDevelopers[0]?.embedding);
+    // console.log("Embeddings type:", typeof otherDevelopers[0]?.embedding);
 
     // Map with async calls and await using Promise.all
     const recommendations = await Promise.all(
@@ -316,15 +332,29 @@ export const getRecommendedDevelopers = async (userId: string) => {
       .map((dev) => ({
         id: dev.id,
         name: dev.name,
+        avatar: dev.avatar,
+        cover_image: dev.cover_image,
+        headline: dev.headline,
         score: dev.score,
+        skills: dev.skills,
+        location: dev.location,
+        followers: dev.followers,
       }));
 
-    console.log("Sorted Recommendations:", sortedRecommendations);
+    // console.log("Sorted Recommendations:", sortedRecommendations);
 
-    return sortedRecommendations.slice(0, 10); // Return top 10 matches
+    return {
+      success: true,
+      message: "Recommended developers found",
+      recommendedDevelopers: sortedRecommendations,
+    };
   } catch (error) {
     console.log("Error fetching recommended developers:", error);
-    return [];
+    return {
+      success: false,
+      message: "Something went wrong",
+      recommendedDevelopers: [],
+    };
   }
 };
 
@@ -434,7 +464,7 @@ export const getTopskills = async () => {
         topSkills: cachedData,
         success: true,
         message: "Top skills found",
-      }
+      };
     }
 
     // If not in cache, fetch data from the database
@@ -456,9 +486,9 @@ export const getTopskills = async () => {
     });
 
     // Filter skills with at least 5 users
-    const filteredSkills = topSkills.filter(
-      (skill) => skill.users.length >= 3
-    ).slice(0, 10);
+    const filteredSkills = topSkills
+      .filter((skill) => skill.users.length >= 3)
+      .slice(0, 10);
 
     if (filteredSkills.length === 0) {
       return {
@@ -486,3 +516,52 @@ export const getTopskills = async () => {
   }
 };
 
+export const getAllSkills = async () => {
+  const cacheKey = `allSkills`; // Unique cache key
+  const cacheTTL = 12 * 60 * 60; // Cache duration in seconds (5 hours)
+
+  try {
+    // Check if data exists in the cache
+    const cachedData = await getFromCache(cacheKey);
+    if (cachedData) {
+      console.log("Returning cached all skills");
+      return {
+        allSkills: cachedData,
+        success: true,
+        message: "All skills found",
+      };
+    }
+
+    // If not in cache, fetch data from the database
+    const allSkills = await prisma.skill.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
+    if (allSkills.length === 0) {
+      return {
+        allSkills: null,
+        success: false,
+        message: "No skills found",
+      };
+    }
+
+    // Store the data in Redis cache
+    await setInCache(cacheKey, allSkills, cacheTTL);
+    console.log("Returning fresh all skills");
+    return {
+      allSkills: allSkills,
+      success: true,
+      message: "All skills found",
+    };
+  } catch (error) {
+    console.log("Error fetching all skills:", error);
+    return {
+      allSkills: null,
+      success: false,
+      message: "Something went wrong",
+    };
+  }
+};

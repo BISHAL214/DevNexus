@@ -34,6 +34,7 @@ import { useLocationSuggestion } from "@/hooks/location_suggestion/use-suggestio
 import { useSearchFilters } from "@/hooks/use-search_filters";
 import { Loader } from "../app_loader/__loader";
 import { useGetTopSkills } from "@/hooks/use-get_top_skills";
+import { useSuggestSkills } from "@/hooks/use-suggest_skills";
 
 type Props = {};
 
@@ -68,7 +69,7 @@ const ExplorePageSearchFilters = (props: Props) => {
   };
 
   return (
-    <div className="lg:col-span-1">
+    <>
       <Card className="bg-white/5 hidden lg:block backdrop-blur-lg border-none shadow-2xl text-white">
         <CardHeader>
           <CardTitle className="tracking-wide">Search & Filters</CardTitle>
@@ -151,7 +152,7 @@ const ExplorePageSearchFilters = (props: Props) => {
           />
         </div>
       </Card>
-    </div>
+    </>
   );
 };
 
@@ -175,8 +176,18 @@ const MobileSearchAndFilterDialog = ({
     setLocation,
   } = useSearchFilters();
 
+  const {
+    skill,
+    skillSuggestions,
+    handleSelectSkill,
+    handleSkillChange,
+    selectedSkill,
+    skillSuggestionLoading,
+  } = useSuggestSkills();
+
   const { topSkillsArray, loading, error } = useGetTopSkills();
 
+  // console.log(selectedSkill)
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -202,7 +213,29 @@ const MobileSearchAndFilterDialog = ({
                   type="text"
                   placeholder="Find Skills..."
                   className="text-white"
+                  value={skill}
+                  onChange={(e) => handleSkillChange(e.target.value)}
                 />
+                {skillSuggestionLoading && (
+                  <div className="h-[12rem] flex justify-center items-center">
+                    <Loader className="text-white" />
+                  </div>
+                )}
+                {skillSuggestions?.length > 0 && !selectedSkill && (
+                  <ul className="mt-1 max-h-60 overflow-auto rounded-md bg-gray-800 py-1 text-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-md">
+                    {skillSuggestions.map((suggestion: any, index: number) => (
+                      <li
+                        key={index}
+                        className="relative cursor-pointer select-none py-2 pl-3 pr-9 text-gray-300 hover:bg-gray-700 capitalize"
+                        onClick={() => {
+                          handleSelectSkill(suggestion);
+                        }}
+                      >
+                        {suggestion.name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 <div className="mt-3">
                   <span className="text-lg text-white">Top Skills</span>
                   <div className="flex flex-wrap gap-2 mt-2">
