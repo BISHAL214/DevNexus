@@ -1,17 +1,14 @@
 "use client";
 
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
-import { FilterIcon, Search, SearchIcon } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import { toast } from "sonner";
-import {
-  getDevelopersBySkills,
-  getTopskills,
-} from "../../../../actions/user_apis";
 import {
   Dialog,
   DialogClose,
@@ -22,19 +19,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { __debounce } from "@/lib/debounce";
-import { useLocationSuggestion } from "@/hooks/location_suggestion/use-suggestion";
-import { useSearchFilters } from "@/hooks/use-search_filters";
-import { Loader } from "../app_loader/__loader";
+import { Slider } from "@/components/ui/slider";
 import { useGetTopSkills } from "@/hooks/use-get_top_skills";
+import { useSearchFilters } from "@/hooks/use-search_filters";
 import { useSuggestSkills } from "@/hooks/use-suggest_skills";
+import { AnimatePresence, motion } from "framer-motion";
+import { FilterIcon, Search, SearchIcon, X } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { getDevelopersBySkills } from "../../../../actions/user_apis";
+import { Loader } from "../app_loader/__loader";
 
 type Props = {};
 
@@ -42,7 +38,28 @@ const ExplorePageSearchFilters = (props: Props) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [experienceLevel, setExperienceLevel] = useState([0, 50]);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
-  const [isSticky, setIsSticky] = useState(false);
+  const [isFilterDivOpen, setIsFilterDivOpen] = useState(false);
+
+  const {
+    location,
+    handleLocationChange,
+    suggestions,
+    setSelectedSuggestion,
+    selectedSuggestion,
+    location_loading,
+    setLocation,
+  } = useSearchFilters();
+
+  const {
+    skill,
+    skillSuggestions,
+    handleSelectSkill,
+    handleSkillChange,
+    selectedSkill,
+    skillSuggestionLoading,
+  } = useSuggestSkills();
+
+  const { topSkillsArray, loading, error } = useGetTopSkills();
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,10 +88,10 @@ const ExplorePageSearchFilters = (props: Props) => {
   return (
     <>
       <Card className="bg-white/5 hidden lg:block backdrop-blur-lg border-none shadow-2xl text-white">
-        <CardHeader>
-          <CardTitle className="tracking-wide">Search & Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
+        {/* <CardHeader>
+          <CardTitle className="tracking-wide text-lg">Search & Filters</CardTitle>
+        </CardHeader> */}
+        <CardContent className="mt-7">
           <form onSubmit={handleSearch} className="space-y-4">
             <div className="flex">
               <Input
@@ -87,65 +104,109 @@ const ExplorePageSearchFilters = (props: Props) => {
               <Button type="submit" className="ml-2">
                 <Search />
               </Button>
+              <Button
+                type="button"
+                onClick={() => setIsFilterDivOpen((prev) => !prev)}
+                aria-expanded={isFilterDivOpen}
+                aria-controls="filter-section"
+                className="ml-2"
+              >
+                <motion.div
+                  animate={{ rotate: isFilterDivOpen ? 180 : 0 }} // Rotate when open/close
+                  transition={{ duration: 0.3, ease: "easeInOut" }} // Smooth animation
+                >
+                  {isFilterDivOpen ? (
+                    <X className="w-4 h-4" />
+                  ) : (
+                    <FilterIcon className="w-4 h-4" />
+                  )}
+                </motion.div>
+              </Button>
             </div>
+            <AnimatePresence>
+              {isFilterDivOpen && (
+                <motion.div
+                  id="filter-section"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-4 overflow-hidden"
+                >
+                  <div>
+                    <label className="block mb-2">Experience Level</label>
+                    <Slider
+                      defaultValue={[0, 50]}
+                      max={50}
+                      step={1}
+                      value={experienceLevel}
+                      onValueChange={(vals) => setExperienceLevel(vals)}
+                      className="bg-white rounded-full border-none outline-none"
+                    />
+                    <div className="flex justify-between text-sm mt-2">
+                      <span>{experienceLevel[0]} years</span>
+                      <span>{experienceLevel[1]} years</span>
+                    </div>
+                  </div>
 
-            <div className="rounded-full">
-              <label className="block mb-2">Experience Level</label>
-              <Slider
-                defaultValue={[0]}
-                max={50}
-                step={1}
-                value={experienceLevel}
-                className="bg-white rounded-full border-none ouline-none"
-                onValueChange={(vals) => {
-                  setExperienceLevel((prev) => [vals[0], prev[1]]);
-                }}
-              />
-              <div className="flex justify-between text-sm mt-2">
-                <span>{experienceLevel[0]} years</span>
-                <span>{experienceLevel[1]} years</span>
-              </div>
-            </div>
+                  <div>
+                    <Input
+                      type="text"
+                      placeholder="Find Skills..."
+                      className="text-white"
+                      value={skill}
+                      onChange={(e) => handleSkillChange(e.target.value)}
+                    />
+                    {skillSuggestionLoading && (
+                      <div className="h-[12rem] flex justify-center items-center">
+                        <Loader className="text-white" />
+                      </div>
+                    )}
+                    {skillSuggestions?.length > 0 && !selectedSkill && (
+                      <ul className="mt-1 max-h-60 overflow-auto rounded-md bg-gray-800 py-1 text-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-md">
+                        {skillSuggestions.map(
+                          (suggestion: any, index: number) => (
+                            <li
+                              key={index}
+                              className="relative cursor-pointer select-none py-2 pl-3 pr-9 text-gray-300 hover:bg-gray-700 capitalize"
+                              onClick={() => {
+                                handleSelectSkill(suggestion);
+                              }}
+                            >
+                              {suggestion.name}
+                            </li>
+                          )
+                        )}
+                      </ul>
+                    )}
+                  </div>
 
-            <div>
-              <Input placeholder="Search Skills..." />
-            </div>
-
-            <div>
-              <label className="block mb-2">Top Skills</label>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  "JavaScript",
-                  "TypeScript",
-                  "React",
-                  "Node.js",
-                  "Python",
-                  "Java",
-                  "C#",
-                  "Ruby",
-                  "Go",
-                  "Rust",
-                ].map((skill) => (
-                  <Badge
-                    key={skill}
-                    variant={
-                      selectedSkills.includes(skill) ? "default" : "secondary"
-                    }
-                    className="cursor-pointer"
-                    onClick={() => handleSkillSelect(skill)}
-                  >
-                    {skill}
-                  </Badge>
-                ))}
-              </div>
-            </div>
+                  <div>
+                    <label className="block mb-2">Top Skills</label>
+                    <div className="flex flex-wrap gap-2">
+                      {topSkillsArray?.length > 0 &&
+                        !loading &&
+                        topSkillsArray.map(({ id, name }) => (
+                          <Badge
+                            key={id}
+                            variant="secondary"
+                            className="cursor-pointer capitalize"
+                          >
+                            {name}
+                          </Badge>
+                        ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </form>
         </CardContent>
       </Card>
       <Card className="bg-white/5 p-4 flex items-center gap-2 lg:hidden backdrop-blur-lg border-none shadow-2xl text-white">
         <Input type="text" placeholder="Search Developers..." />
-        <div className="flex gap-2">
-          <SearchIcon className="w-8 h-8 text-white bg-gray-800 p-2 rounded-lg" />
+        <div className="flex flex-row">
+          <SearchIcon className="w-8 h-8 text-white bg-gray-800 p-2 mr-2 rounded-lg" />
           <MobileSearchAndFilterDialog
             experienceLevel={experienceLevel}
             setExperienceLevel={setExperienceLevel}
@@ -166,6 +227,8 @@ const MobileSearchAndFilterDialog = ({
   experienceLevel,
   setExperienceLevel,
 }: MobileSearchAndFilterDialogProps) => {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
   const {
     location,
     handleLocationChange,
@@ -189,9 +252,20 @@ const MobileSearchAndFilterDialog = ({
 
   // console.log(selectedSkill)
   return (
-    <Dialog>
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogTrigger asChild>
-        <FilterIcon className="w-8 h-8 text-white bg-gray-800 p-2 rounded-lg" />
+        <Button className="w-8 h-8 text-white bg-gray-800 rounded-lg">
+          <motion.div
+            animate={{ rotate: isDialogOpen ? 180 : 0 }} // Rotate when opening/closing
+            transition={{ duration: 0.3, ease: "easeInOut" }} // Smooth animation
+          >
+            {isDialogOpen ? (
+              <X className="w-4 h-4" />
+            ) : (
+              <FilterIcon className="w-4 h-4" />
+            )}
+          </motion.div>
+        </Button>
       </DialogTrigger>
       <form>
         <DialogContent className="bg-white/5 backdrop-blur-xl border-none p-3 w-[90%] absolute top-[20rem] rounded-lg">

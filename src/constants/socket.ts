@@ -1,0 +1,1 @@
+export const socket_url = process.env.NEXT_PUBLIC_SOCKET_SERVER_URL

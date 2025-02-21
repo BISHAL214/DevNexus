@@ -6,6 +6,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client" // Ensures reusability
 }
 
 datasource db {
@@ -22,6 +23,7 @@ enum ConnectionStatus {
 model User {
   id           String    @id @default(uuid())
   firebase_uid String    @unique
+  slug         String?   @unique
   name         String
   email        String    @unique
   githubId     String    @unique
@@ -47,12 +49,14 @@ model User {
   receivedMessages Message[] @relation("MessageReciever")
 
   // Fixed One-to-Many for Notifications
-  notifications Notification[]
-  location      Location?      @relation(fields: [locationId], references: [id])
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  locationId    String?
-  embedding     Json?
+  sentNotifications     Notification[] @relation("notificationSender")
+  recievedNotifications Notification[] @relation("notificationReciever")
+
+  location   Location? @relation(fields: [locationId], references: [id])
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  locationId String?
+  embedding  Json?
 
   @@map("users")
 }
@@ -73,11 +77,11 @@ model Project {
 
 model Connection {
   id         String           @id @default(uuid())
-  senderId   String
-  sender     User             @relation("SentConnections", fields: [senderId], references: [id])
-  receiverId String
-  receiver   User             @relation("ReceivedConnections", fields: [receiverId], references: [id])
-  status     ConnectionStatus @default(PENDING) // Uses Enum
+  senderId   String?
+  sender     User?            @relation("SentConnections", fields: [senderId], references: [id], onDelete: SetNull)
+  receiverId String?
+  receiver   User?            @relation("ReceivedConnections", fields: [receiverId], references: [id], onDelete: SetNull)
+  status     ConnectionStatus @default(PENDING)
   createdAt  DateTime         @default(now())
 
   @@index([senderId, receiverId], name: "SenderReceiverIndex")
@@ -97,14 +101,24 @@ model Message {
   @@map("messages")
 }
 
-model Notification {
-  id        String   @id @default(uuid())
-  userid    String
-  message   String
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
+enum NotificationType {
+  CONNECTION_REQUEST
+  MESSAGE
+  FOLLOW
+}
 
-  user User @relation(fields: [userid], references: [id])
+model Notification {
+  id         String           @id @default(uuid())
+  type       NotificationType
+  typeId     String?
+  recieverId String
+  senderId   String
+  message    String
+  isRead     Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+
+  sender   User @relation("notificationSender", fields: [senderId], references: [id])
+  reciever User @relation("notificationReciever", fields: [recieverId], references: [id])
 
   @@map("notifications")
 }

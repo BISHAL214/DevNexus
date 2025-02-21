@@ -8,32 +8,35 @@ export enum ConnectionStatus {
 
 export interface User {
   id?: string;
-  name: string;
-  email: string;
-  githubId: string;
-  avatar?: string;
-  bio?: string;
-  skills?: Skill[];
+  firebase_uid: string | null;
+  name: string | null;
+  email: string | null;
+  githubId: string | null;
+  cover_image: string | null;
+  headline: string | null;
+  avatar?: string | null;
+  bio?: string | null;
+  skills?: Skill[] | null;
   projects?: Project[];
-  experience?: number;
-  interests?: string[];
+  experience?: number | null;
+  interests?: string[] | null;
 
-  followers?: User[];
-  following?: User[];
+  followers?: User[] | null;
+  following?: User[]  | null;
 
-  sentConnections?: Connection[];
-  receivedConnections?: Connection[];
+  sentConnections?: Connection[] | null;
+  receivedConnections?: Connection[] ;
 
-  sentMessages?: Message[];
-  receivedMessages?: Message[];
+  sentMessages?: Message[] | null;
+  receivedMessages?: Message[] | null;
 
-  notifications?: Notification[];
-  location?: Location;
-  locationId?: string;
+  notifications?: Notification[] | null;
+  location?: Location | null;
+  locationId?: string | null;
 
-  createdAt: Date;
-  updatedAt: Date;
-  embedding: JsonValue;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  embedding: JsonValue | null;
 }
 
 export interface Project {
@@ -68,12 +71,12 @@ export interface Message {
 }
 
 export interface Notification {
-  id?: string;
+  id: string;
   userid: string;
   message: string;
   isRead: boolean;
   createdAt: Date;
-  user: User;
+  user?: User;
 }
 
 export interface Location {

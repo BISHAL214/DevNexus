@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import AppLogo from "./app_logo";
-import { app_navigation_links } from "./../../../constants/app_navigation_links";
+import { app_navigation_links } from "../../../constants/app_navigation_links";
 import { usePathname } from "next/navigation";
 import { useFirebaseStore } from "@/store/firebase_firestore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,7 +13,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { FolderKanban, LogOut, SlidersHorizontal, User } from "lucide-react";
+import {
+  FolderKanban,
+  Handshake,
+  LogOut,
+  SlidersHorizontal,
+  User,
+} from "lucide-react";
 import { motion } from "framer-motion";
 import type React from "react";
 import { toast } from "sonner";
@@ -29,6 +35,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useEffect } from "react";
 
 const MotionLink = motion.create(Link);
 const MotionAvatar = motion.create(Avatar);
@@ -67,8 +74,24 @@ const NavLink = ({
   );
 };
 
-export default function AppNavbar() {
+export default function AppNavbar({
+  unreadNotificationCount,
+  action,
+  setAction,
+}: {
+  unreadNotificationCount: number;
+  action: boolean;
+  setAction: (value: boolean) => void;
+}) {
+  const pathname = usePathname();
+
   const { user, user_loading, sign_out } = useFirebaseStore();
+
+  useEffect(() => {
+    if (pathname === `/user/${user?.slug}/notifications`) {
+      setAction(false);
+    }
+  }, [pathname]);
 
   const handle_signout = async () => {
     try {
@@ -87,6 +110,8 @@ export default function AppNavbar() {
       .map((n: string) => n[0])
       .join("");
 
+  // TODO: insert developer search bar in middle of logo and nav links, resize the logo according the varioud devices
+
   return (
     <nav className="fixed w-full bg-transparent z-20">
       <div className="backdrop-blur-md bg-black/5 mx-2 mt-2 rounded-xl">
@@ -98,19 +123,61 @@ export default function AppNavbar() {
               </Link>
             </div>
             {/* <div className="hidden md:block"> */}
-            <div className="ml-10 flex justify-end items-center space-x-2">
+            <div className="ml-0 lg:ml-10 flex justify-end items-center">
               {user &&
                 !user_loading &&
-                app_navigation_links.map((link, index) => (
-                  <NavLink
-                    key={link.href}
-                    href={link.href}
-                    index={index}
-                    totalLinks={app_navigation_links.length}
-                  >
-                    {link.title}
-                  </NavLink>
-                ))}
+                app_navigation_links.map((link, index) => {
+                  const LinkIcon = link.icon;
+                  if (link.title === "Notifications") {
+                    return (
+                      <NavLink
+                        key={index}
+                        href={`/user/${user?.slug}${link.href}`}
+                        index={index}
+                        totalLinks={app_navigation_links.length}
+                      >
+                        <div className="flex gap-2 items-center">
+                          {
+                            <div className="relative">
+                              <LinkIcon />
+                              {action && (
+                                <motion.span
+                                  initial={{ opacity: 0 }}
+                                  animate={{
+                                    opacity: 1,
+                                    animation: "ease-in-out",
+                                  }}
+                                  transition={{
+                                    duration: 0.2,
+                                    delay: 0.2,
+                                  }}
+                                  className="bg-red-500 text-xs absolute w-4 h-4 flex justify-center items-center top-0 -right-1 rounded-full z-10"
+                                >
+                                  {unreadNotificationCount}
+                                </motion.span>
+                              )}
+                            </div>
+                          }
+                          {link.title}{" "}
+                        </div>
+                      </NavLink>
+                    );
+                  } else {
+                    return (
+                      <NavLink
+                        key={index}
+                        href={link.href}
+                        index={index}
+                        totalLinks={app_navigation_links.length}
+                      >
+                        <div className="flex gap-2 items-center">
+                          {<LinkIcon />}
+                          {link.title}
+                        </div>
+                      </NavLink>
+                    );
+                  }
+                })}
               {user_loading && <Loader className="text-white" />}
               {!user && !user_loading && (
                 <NavLink href="/auth/signin" index={0} totalLinks={1}>
@@ -141,7 +208,7 @@ export default function AppNavbar() {
                       <div className="flex items-center gap-2 px-2 py-2 text-white hover:bg-gray-900 rounded-md cursor-pointer font-sans tracking-wide">
                         <Link
                           className="flex justify-between w-full"
-                          href={`/user/profile/${user?.id}`}
+                          href={`/user/profile/${user?.slug}`}
                         >
                           Profile
                           <User />
@@ -150,17 +217,26 @@ export default function AppNavbar() {
 
                       <div className="flex items-center gap-2 text-white px-2 py-2 hover:bg-gray-900 rounded-md cursor-pointer font-sans tracking-wide">
                         <Link
-                          href={`/user/projects/${user?.id}`}
+                          href={`/me/projects`}
                           className="flex justify-between w-full"
                         >
                           Projects
                           <FolderKanban />
                         </Link>
                       </div>
+                      <div className="flex items-center gap-2 text-white px-2 py-2 hover:bg-gray-900 rounded-md cursor-pointer font-sans tracking-wide">
+                        <Link
+                          href={`/me/collaborations`}
+                          className="flex justify-between w-full"
+                        >
+                          Collaborations
+                          <Handshake />
+                        </Link>
+                      </div>
 
                       <div className="flex items-center gap-2 text-white px-2 py-2 hover:bg-gray-900 rounded-md cursor-pointer font-sans tracking-wide">
                         <Link
-                          href={`/user/settings/${user?.id}`}
+                          href={`/me/settings`}
                           className="flex justify-between w-full"
                         >
                           Settings
@@ -188,7 +264,10 @@ export default function AppNavbar() {
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction className="bg-red-500" onClick={handle_signout} >
+                            <AlertDialogAction
+                              className="bg-red-500"
+                              onClick={handle_signout}
+                            >
                               Continue
                             </AlertDialogAction>
                           </AlertDialogFooter>

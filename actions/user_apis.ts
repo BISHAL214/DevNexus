@@ -49,6 +49,13 @@ const setInCache = async (key: string, data: any, ttl: number) => {
   }
 };
 
+interface globalReturnType {
+  success: boolean;
+  error?: boolean;
+  message: string;
+}
+
+// for Authentication only
 export const getUserById = async (firebase_uid: string) => {
   const cacheKey = `userById:${firebase_uid}`; // Unique cache key based on the user
   const cacheTTL = 24 * 24 * 60 * 60; // Cache duration in seconds (48 hours)
@@ -79,6 +86,69 @@ export const getUserById = async (firebase_uid: string) => {
     // If not in cache, fetch user data from the database
     const user = await prisma.user.findUnique({
       where: { firebase_uid: firebase_uid },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        githubId: true,
+        avatar: true,
+        bio: true,
+        headline: true,
+        cover_image: true,
+        interests: true,
+        firebase_uid: true,
+        experience: true,
+        embedding: true,
+        skills: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        location: {
+          select: {
+            id: true,
+            city: true,
+            state: true,
+            country: true,
+            latitude: true,
+            longitude: true,
+          },
+        },
+        followers: {
+          select: {
+            id: true,
+          },
+        },
+        sentConnections: {
+          select: {
+            id: true,
+          },
+        },
+        receivedConnections: {
+          select: {
+            id: true,
+          },
+        },
+        sentMessages: {
+          select: {
+            id: true,
+          },
+        },
+        receivedMessages: {
+          select: {
+            id: true,
+          },
+        },
+        projects: {
+          select: {
+            id: true,
+          },
+        },
+        updatedAt: true,
+        createdAt: true,
+        slug: true,
+      },
     });
 
     if (!user) {
@@ -111,6 +181,110 @@ export const getUserById = async (firebase_uid: string) => {
   }
 };
 
+// user cache update
+interface UpdateUserCacheResponse extends globalReturnType {
+  uppdatedUser?: any;
+}
+export const updateUserCache = async (
+  userId: string
+): Promise<UpdateUserCacheResponse> => {
+  try {
+    const cacheKey = `userById:${userId}`;
+    const cacheTTL = 24 * 24 * 60 * 60; // Cache duration in seconds (48 hours)
+    // override the existing cache by fetching the fresh data from the database
+    const freshUserData = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        githubId: true,
+        avatar: true,
+        bio: true,
+        firebase_uid: true,
+        headline: true,
+        cover_image: true,
+        interests: true,
+        experience: true,
+        embedding: true,
+        skills: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        location: {
+          select: {
+            id: true,
+            city: true,
+            state: true,
+            country: true,
+            latitude: true,
+            longitude: true,
+          },
+        },
+        followers: {
+          select: {
+            id: true,
+          },
+        },
+        sentConnections: {
+          select: {
+            id: true,
+          },
+        },
+        receivedConnections: {
+          select: {
+            id: true,
+          },
+        },
+        sentMessages: {
+          select: {
+            id: true,
+          },
+        },
+        receivedMessages: {
+          select: {
+            id: true,
+          },
+        },
+        projects: {
+          select: {
+            id: true,
+          },
+        },
+        updatedAt: true,
+        createdAt: true,
+        slug: true,
+      },
+    });
+
+    // Store the data in Redis cache
+    await setInCache(cacheKey, freshUserData, cacheTTL);
+    console.log(
+      "Cache refreshed successfully, returning updated fresh user data"
+    );
+    return {
+      success: true,
+      message: "Cache refreshed successfully",
+      uppdatedUser: freshUserData,
+    };
+  } catch (error) {
+    if (error instanceof Error) {
+      console.log("Error: ", error.stack);
+      return {
+        success: false,
+        message: error.message ? error.message : "Cache refresh failed",
+      };
+    } else {
+      return {
+        success: false,
+        message: "Something went wrong in refreshing cache",
+      };
+    }
+  }
+};
+
 export const createUserWithSkillsAndLocation = async (
   userId: string,
   name: string,
@@ -121,7 +295,9 @@ export const createUserWithSkillsAndLocation = async (
   skills: string[],
   interests: string[],
   experience: number | null,
-  location: Location
+  location: Location,
+  headline?: string | null,
+  cover_image?: string | null
 ) => {
   try {
     // console.log("Starting user creation...");
@@ -160,10 +336,13 @@ export const createUserWithSkillsAndLocation = async (
         email,
         githubId,
         avatar,
+        headline,
+        cover_image,
         bio,
         interests: lowercased_interests,
         experience: Number(experience),
         embedding: user_embedding,
+        updatedAt: new Date(),
       },
     });
 
@@ -232,12 +411,16 @@ export const createUserWithSkillsAndLocation = async (
     }
 
     let updated_user = {};
+    const slug_id = newUser.id.split("-")[0];
+    const user_slug =
+      newUser.name.replace(/\s+/g, "-").toLowerCase() + "-" + slug_id;
 
     // Step 5: Update the user with location ID
     if (locationId && skillIds.length > 0) {
       updated_user = await prisma.user.update({
         where: { id: newUser.id },
         data: {
+          slug: user_slug,
           location: { connect: { id: locationId } },
           skills: { connect: skillIds.map((id) => ({ id })) },
         },
@@ -266,6 +449,8 @@ export const createUserWithSkillsAndLocation = async (
 };
 
 export const getRecommendedDevelopers = async (userId: string) => {
+  console.log("User ID:", userId);
+
   try {
     const [user, allDevelopers] = await Promise.all([
       prisma.user.findUnique({
@@ -282,6 +467,7 @@ export const getRecommendedDevelopers = async (userId: string) => {
           headline: true,
           skills: true,
           location: true,
+          slug: true,
           followers: true,
         },
       }),
@@ -329,6 +515,7 @@ export const getRecommendedDevelopers = async (userId: string) => {
     // Sort by highest similarity score
     const sortedRecommendations = recommendations
       .sort((a, b) => b.score - a.score)
+      .slice(0, 6) // Get top 6 recommendations
       .map((dev) => ({
         id: dev.id,
         name: dev.name,
@@ -339,6 +526,7 @@ export const getRecommendedDevelopers = async (userId: string) => {
         skills: dev.skills,
         location: dev.location,
         followers: dev.followers,
+        slug: dev.slug,
       }));
 
     // console.log("Sorted Recommendations:", sortedRecommendations);
@@ -354,6 +542,63 @@ export const getRecommendedDevelopers = async (userId: string) => {
       success: false,
       message: "Something went wrong",
       recommendedDevelopers: [],
+    };
+  }
+};
+
+// TODO: Implement this all developers function in more optimized way, like handling large number of developers data using chunking, pagination.
+export const getAllDevelopers = async () => {
+  try {
+    const allDevelopers = await prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        avatar: true,
+        slug: true,
+        cover_image: true,
+        headline: true,
+        skills: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        location: true,
+        followers: true,
+      },
+    });
+
+    if (!allDevelopers) {
+      return {
+        success: false,
+        message: "No developers found",
+        allDevelopers: [],
+      };
+    }
+
+    const developers = allDevelopers.map((dev) => ({
+      id: dev.id,
+      name: dev.name,
+      avatar: dev.avatar,
+      cover_image: dev.cover_image,
+      headline: dev.headline,
+      skills: dev.skills,
+      location: dev.location,
+      followers: dev.followers,
+      slug: dev.slug,
+    }));
+
+    return {
+      success: true,
+      message: "Developers found",
+      allDevelopers: allDevelopers,
+    };
+  } catch (error) {
+    console.log("Error fetching all developers:", error);
+    return {
+      success: false,
+      message: "Something went wrong",
+      allDevelopers: [],
     };
   }
 };
@@ -430,11 +675,6 @@ export const getDevelopersBySkills = async (skills: string[]) => {
       };
     }
 
-    // console.log(
-    //   "these are the skills - ",
-    //   skills,
-    //   JSON.stringify(developers)
-    // );
     return {
       developers: developers,
       success: true,
@@ -562,6 +802,222 @@ export const getAllSkills = async () => {
       allSkills: null,
       success: false,
       message: "Something went wrong",
+    };
+  }
+};
+
+export const getUserDetails = async (user_slug: string) => {
+  try {
+    if (!user_slug) {
+      return {
+        success: false,
+        message: "User ID not provided",
+        userDetails: null,
+      };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { slug: user_slug },
+      include: {
+        skills: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        location: true,
+        followers: true,
+        following: true,
+        sentConnections: true,
+        sentMessages: true,
+        receivedMessages: true,
+        receivedConnections: true,
+        projects: true,
+      },
+    });
+
+    if (!user) {
+      return {
+        success: false,
+        message: "User not found",
+        userDetails: null,
+      };
+    }
+
+    // const final_user = {
+    //   id: user.id,
+    //   name: user.name,
+    //   avatar: user.avatar,
+    //   cover_image: user.cover_image,
+    //   headline: user.headline,
+    //   bio: user.bio,
+    //   skills: user.skills,
+    //   location: user.locations,
+    //   followers: user.users_A,
+    //   following: user.users_B,
+    //   sentConnections: user.connections_connections_senderIdTousers,
+    //   recievedConnections: user.connections_connections_receiverIdTousers,
+    //   sentMessages: user.messages_messages_senderidTousers,
+    //   recievedMessages: user.messages_messages_receiveridTousers,
+    //   projects: user.projects,
+    // }
+
+    return {
+      success: true,
+      message: "User details found",
+      userDetails: user,
+    };
+  } catch (err: any) {
+    console.log("Error fetching user details:", err, err.message);
+    return {
+      success: false,
+      message:
+        err.message || "Something went wrong while fetching user details",
+      userDetails: null,
+    };
+  }
+};
+
+export const getUsersNotifications = async (userId: string) => {
+  try {
+    if (!userId) {
+      return {
+        success: false,
+        message: "User ID not provided",
+        notifications: null,
+      };
+    }
+
+    const usersNotifications = await prisma.notification.findMany({
+      where: { recieverId: userId },
+      select: {
+        id: true,
+        message: true,
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+            slug: true,
+          },
+        },
+        reciever: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+        type: true,
+        typeId: true,
+        createdAt: true,
+        isRead: true,
+      },
+    });
+
+    if (!usersNotifications) {
+      return {
+        success: false,
+        message: "Notifications not found",
+        notifications: null,
+      };
+    }
+
+    return {
+      success: true,
+      message: "Notifications found",
+      notifications: usersNotifications,
+    };
+  } catch (error: any) {
+    if (error instanceof Error) console.log("Error: ", error.stack);
+    console.log("Error fetching notifications:", error);
+    return {
+      success: false,
+      message: error.message,
+      notifications: null,
+    };
+  }
+};
+
+export const markNotificationsAsRead = async (userId: string) => {
+  try {
+    if (!userId) {
+      return {
+        success: false,
+        message: "User ID not provided",
+      };
+    }
+
+    await prisma.notification.updateMany({
+      where: { recieverId: userId },
+      data: { isRead: true },
+    });
+
+    return {
+      success: true,
+      message: "Notifications marked as read",
+    };
+  } catch (error: any) {
+    if (error instanceof Error) console.log("Error: ", error.stack);
+    console.log("Error marking notifications as read:", error);
+    return {
+      success: false,
+      message: error.message,
+    };
+  }
+};
+
+export const markNotificationAsReadById = async (notificationId: string) => {
+  try {
+    if (!notificationId) {
+      return {
+        success: false,
+        message: "Notification ID not provided",
+      };
+    }
+
+    await prisma.notification.update({
+      where: { id: notificationId },
+      data: { isRead: true },
+    });
+
+    return {
+      success: true,
+      message: "Notification marked as read",
+    };
+  } catch (error: any) {
+    if (error instanceof Error) console.log("Error: ", error.stack);
+    console.log("Error marking notification as read:", error);
+    return {
+      success: false,
+      message: error.message,
+    };
+  }
+};
+
+export const deleteNotificationById = async (notification_id: string) => {
+  try {
+    if (!notification_id) {
+      return {
+        success: false,
+        message: "Notification ID not provided",
+      };
+    }
+
+    await prisma.notification.delete({
+      where: { id: notification_id },
+    });
+
+    return {
+      success: true,
+      message: "Notification deleted successfully",
+    };
+  } catch (error: any) {
+    if (error instanceof Error) console.log("Error: ", error.stack);
+    console.log("Error deleting notification:", error);
+    return {
+      success: false,
+      message: error.message,
     };
   }
 };

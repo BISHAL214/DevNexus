@@ -9,6 +9,8 @@ export interface firestoreInterface {
   setUser: (user: any | null) => void;
   setUserLoading: (isLoading: boolean) => void;
   listen_to_auth_changes: () => void;
+  updateUserLocally: (updates: any) => void;
+  refreshUserCache: (userId: string) => void;
 }
 
 // type google_sign_in_return = {

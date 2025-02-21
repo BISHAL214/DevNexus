@@ -1,11 +1,8 @@
-import Navbar from "@/components/app_components/app_header/app_header_wrapper";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import AuthListener from "./auth_listener";
-import { Toaster } from "sonner";
 import { IconBrandLinkedin } from "@tabler/icons-react";
+import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
-import {MobileDockNavigation} from "@/components/app_components/app_header/app_mobile_dock";
+import { ClientLayout } from "./client_layout";
+import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,11 +30,8 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthListener />
-        <Navbar />
-        {children}
-          <MobileDockNavigation />
-        {/* <footer className="h-[50px] text-white bg-black hidden md:flex flex-shrink-0 gap-5 items-center justify-center text-center">
+        <ClientLayout children={children} />
+        <footer className="h-[50px] text-white bg-black hidden md:flex flex-shrink-0 gap-5 items-center justify-center text-center">
           Created with ❤️ by Bishal Mondal
           <Link
             className="z-50"
@@ -46,9 +40,9 @@ export default function RootLayout({
           >
             <IconBrandLinkedin />
           </Link>
-        </footer> */}
-        <Toaster />
+        </footer>
       </body>
     </html>
   );
 }
+

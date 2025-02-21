@@ -26,12 +26,12 @@ import {
   setDoc,
   where,
 } from "firebase/firestore";
-import { useFetchUserById } from "@/hooks/app_api/use-fetch_user_by_id";
 import axios from "axios";
 import { User } from "@/interfaces/app_database_models";
 import { firestoreInterface } from "@/interfaces/app_firebase";
 import { prisma } from "@/lib/prisma";
-import { getUserById } from "../../actions/user_apis";
+import { getUserById, updateUserCache } from "../../actions/user_apis";
+import { useSocketStore } from "./socket_socketstore";
 
 export const useFirebaseStore = create<firestoreInterface>((set) => ({
   user: null,
@@ -100,9 +100,10 @@ export const useFirebaseStore = create<firestoreInterface>((set) => ({
 
   listen_to_auth_changes: () => {
     set({ user_loading: true });
-
+    console.log("Listening to auth changes");
     onAuthStateChanged(firebase_auth, async (firebaseUser) => {
       if (firebaseUser && firebaseUser?.uid) {
+        const { connect, socket } = useSocketStore.getState();
         try {
           const database_user = await getUserById(firebaseUser.uid);
           if (database_user.success && database_user.user_data) {
@@ -110,6 +111,8 @@ export const useFirebaseStore = create<firestoreInterface>((set) => ({
               user: { ...firebaseUser, ...database_user.user_data },
               user_loading: false,
             });
+            connect();
+            // socket?.emit("join", { user_id: database_user.user_data.id });
           } else {
             set({ user: firebaseUser, user_loading: false });
           }
@@ -119,8 +122,41 @@ export const useFirebaseStore = create<firestoreInterface>((set) => ({
         }
       } else {
         set({ user: null, user_loading: false });
+        useSocketStore.getState().disconnect();
       }
     });
+  },
+
+  updateUserLocally: (updates: any) => {
+    set((state) => {
+      if (!state.user) return { user: null };
+
+      // Create a copy of the existing user object
+      const newUser = { ...state.user };
+
+      // Remove keys that are being updated
+      Object.keys(updates).forEach((key) => {
+        delete newUser[key];
+      });
+
+      // Spread updates over the cleaned user object
+      return { user: { ...newUser, ...updates } };
+    });
+  },
+
+  refreshUserCache: async (userId: string) => {
+    // This will be our debounced function to refresh Redis cache
+    try {
+      const { success, message, uppdatedUser } = await updateUserCache(userId);
+      if (success) {
+        set({ user: { ...uppdatedUser }, user_loading: false });
+        console.log("Cache refresh successful:", message);
+      } else {
+        console.error("Cache refresh failed:", message);
+      }
+    } catch (error) {
+      console.error("Cache refresh failed from catch error:", error);
+    }
   },
 }));
 

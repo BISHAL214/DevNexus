@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { useFirebaseStore } from "./../store/firebase_firestore";
 import { getRecommendedDevelopers } from "../../actions/user_apis";
+import {
+  getFromSessionStorage,
+  saveToSessionStorage,
+} from "@/lib/session_storage_functions";
 
 export type RecommendDevsType = {
   id: string | null;
@@ -12,6 +16,7 @@ export type RecommendDevsType = {
   followers: any;
   location: any;
   skills: any;
+  slug: string | null;
 };
 
 export const useRecommendDevs = () => {
@@ -20,22 +25,12 @@ export const useRecommendDevs = () => {
   const [devsLoading, setDevsLoading] = useState<boolean>(false);
   const [devsError, setDevsError] = useState<string | null>(null);
 
-  const getFromSessionStorage = () => {
-    const devs = sessionStorage.getItem("recommendedDevs");
-    if (devs) {
-      setDevs(JSON.parse(devs));
-    }
-  }
-
-  const saveToSessionStorage = (devs: RecommendDevsType[]) => {
-    sessionStorage.setItem("recommendedDevs", JSON.stringify(devs));
-  }
-
   useEffect(() => {
     if (user?.id) {
       setDevsLoading(true);
-      if(sessionStorage.getItem("recommendedDevs")) {
-        getFromSessionStorage();
+      const developers = getFromSessionStorage("recommendedDevs");
+      if (developers !== null) {
+        setDevs(developers);
         setDevsLoading(false);
       }
       const fetchRecommendDevs = async () => {
@@ -53,9 +48,10 @@ export const useRecommendDevs = () => {
             followers: dev.followers,
             location: dev.location,
             skills: dev.skills,
+            slug: dev.slug,
           }));
           setDevs(devs);
-          saveToSessionStorage(devs);
+          saveToSessionStorage("recommendedDevs", devs);
         } else {
           setDevsError(message);
         }

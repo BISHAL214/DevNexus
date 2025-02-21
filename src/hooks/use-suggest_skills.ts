@@ -44,14 +44,17 @@ export const useSuggestSkills = () => {
     [skill, selectedSkill]
   );
 
-  const handleSkillChange = (value: string) => {
-    if (value.length < 2) {
-      setSkillSuggestions([]);
-      setSelectedSkill(null);
-    }
-    setSkill(value);
-    debouncedGetSkillSuggestions(value);
-  };
+  const handleSkillChange = useCallback(
+    (value: string) => {
+      if (value.length < 2) {
+        setSkillSuggestions([]);
+        setSelectedSkill(null);
+      }
+      setSkill(value);
+      debouncedGetSkillSuggestions(value);
+    },
+    [skillSuggestions, selectedSkill]
+  );
 
   useEffect(() => {
     const fetchSuggestSkills = async () => {
