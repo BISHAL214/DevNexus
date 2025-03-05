@@ -19,13 +19,13 @@ import { toast } from "sonner"
 import { filter_all_devs } from "@/lib/filter_all_devs"
 import { Separator } from "@/components/ui/separator"
 import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-  PaginationEllipsis,
+	Pagination,
+	PaginationContent,
+	PaginationItem,
+	PaginationLink,
+	PaginationNext,
+	PaginationPrevious,
+	PaginationEllipsis,
 } from "@/components/ui/pagination"
 import { useInfiniteScroll } from "@/hooks/use-infinite_scroll"
 import { forwardRef } from "react"

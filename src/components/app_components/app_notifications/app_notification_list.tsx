@@ -1,32 +1,32 @@
-import { AnimatePresence } from "framer-motion"
-import { NotificationItem } from "./app_notifications_items"
+import { AnimatePresence } from "framer-motion";
+import { NotificationItem } from "./app_notifications_items";
 
 export interface Notification {
-  id: string
-  type: string
-  typeId: string
-  message: string
-  createdAt: string
+  id: string;
+  type: string;
+  typeId: string;
+  message: string;
+  createdAt: string;
   sender: {
-    id: string
-    name: string
-    avatar: string
-    slug: string
-  }
+    id: string;
+    name: string;
+    avatar: string;
+    slug: string;
+  };
   reciever: {
-    id: string
-    name: string
-    avatar: string
-  }
-  isRead: boolean
+    id: string;
+    name: string;
+    avatar: string;
+  };
+  isRead: boolean;
+  status?: string;
 }
 
 interface NotificationListProps {
-  notifications: Notification[]
+  notifications: Notification[];
 }
 
 export function NotificationList({ notifications }: NotificationListProps) {
-
   // console.log("🔔 Notifications:", notifications)
 
   return (
@@ -43,10 +43,10 @@ export function NotificationList({ notifications }: NotificationListProps) {
             reciever={notification.reciever}
             isRead={notification.isRead}
             typeId={notification.typeId}
+            status={notification.status && notification.status}
           />
         ))}
       </AnimatePresence>
     </div>
-  )
+  );
 }
-

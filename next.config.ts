@@ -14,14 +14,15 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "picsum.photos"
+        hostname: "picsum.photos",
       },
       {
         protocol: "https",
-        hostname: "lh3.googleusercontent.com"
+        hostname: "lh3.googleusercontent.com",
       }
     ]
-  }
+  },
+  "reactStrictMode": false,
 };
 
 export default nextConfig;

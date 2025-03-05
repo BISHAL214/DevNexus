@@ -30,6 +30,7 @@ export const useNotifications = () => {
   const { refreshUserCache, updateUserLocally } = useFirebaseStore();
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null); // used in connection accept listener
+  const executeRef = useRef(false); // used in connection accept listener
 
   const fetchNotifications = async (user_id: string) => {
     setNotificationsLoading(true);
@@ -57,7 +58,11 @@ export const useNotifications = () => {
   const addNotification = (notification: any) => {
     setNotifications((prev) => [notification, ...prev]);
     setUnreadCount((prev) => prev + 1);
+
+    // Update activeNotifications instantly
+    setActiveNotifications((prev) => [notification, ...prev]);
   };
+
 
   const listenForNotifications = (socket: Socket, user: any) => {
     if (!socket) return;
@@ -140,14 +145,12 @@ export const useNotifications = () => {
       return;
     }
 
-    let hasExecuted = false;
-
     const scheduleCacheRefresh = () => {
       if (timeoutRef.current) return; // Prevent duplicate scheduling
 
       timeoutRef.current = setTimeout(() => {
         refreshUserCache(user?.id); // Refresh cache for the current user
-        hasExecuted = true;
+        executeRef.current = true;
         timeoutRef.current = null; // Clear timeout reference
       }, 1 * 60 * 1000);
     };
@@ -170,29 +173,33 @@ export const useNotifications = () => {
         updatedAt: new Date(),
       });
 
+      if (user?.id === connectionSender) {
+        // give a toast to the user who sent the connection_request
+        toast.success(`${data?.updated_connection?.receiver?.name} accept your connection request`, {
+          duration: 5000,
+          closeButton: true,
+        });
+      }
+
+      // Schedule cache refresh after
       scheduleCacheRefresh();
     };
 
-    const handleTabVisibilityChange = () => {
-      if (document.visibilityState === "hidden" && !hasExecuted) {
-        console.log("User is leaving or switching tabs. Updating cache...");
+    const handleBeforeUnload = () => {
+      if (!executeRef.current) {
+        console.log("user is leaving before 5 minutes, forcing cache update");
+        localStorage.setItem("cache_update", "true")
         refreshUserCache(user?.id);
-        hasExecuted = true;
+        executeRef.current = true;
       }
-    };
+    }
 
-    document.addEventListener("visibilitychange", handleTabVisibilityChange);
-    document.addEventListener("freeze", handleTabVisibilityChange);
-
+    document.addEventListener("beforeunload", handleBeforeUnload);
     socket.on("connection_request_accepted", handleConnectionAccept);
 
     return () => {
       socket.off("connection_request_accepted", handleConnectionAccept);
-      document.removeEventListener(
-        "visibilitychange",
-        handleTabVisibilityChange
-      );
-      document.removeEventListener("freeze", handleTabVisibilityChange);
+      document.removeEventListener("beforeunload", handleBeforeUnload);
 
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -202,11 +209,17 @@ export const useNotifications = () => {
   };
 
   const deleteNotification = async (notification_id: string) => {
+    console.log("Before delete notification:", notifications);
+    console.log("Before delete active notification:", activeNotifications);
     // first remove the notivication from the list
     setNotifications((prev) => prev.filter((n) => n.id !== notification_id));
     setActiveNotifications((prev) =>
       prev.filter((n) => n.id !== notification_id)
     );
+
+    console.log("After delete notification:", notifications);
+    console.log("After delete active notification:", activeNotifications);
+
     // then delete from database
     try {
       const { success, message } = await deleteNotificationById(
@@ -254,4 +267,4 @@ export const useNotifications = () => {
     deleteNotification,
     connectionAcceptedArray,
   };
-};
+}; 

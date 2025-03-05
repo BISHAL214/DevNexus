@@ -1,17 +1,19 @@
 import { IconBrandLinkedin } from "@tabler/icons-react";
-import { Geist, Geist_Mono } from "next/font/google";
+import {
+  Geist as GeistFont,
+  Geist_Mono as GeistMonoFont,
+} from "next/font/google";
 import Link from "next/link";
 import { ClientLayout } from "./client_layout";
 import "./globals.css";
 
-const geistSans = Geist({
+const geistSans = GeistFont({
+  subsets: ["latin"],
   variable: "--font-geist-sans",
-  subsets: ["latin"],
 });
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const geistMono = GeistMonoFont({
   subsets: ["latin"],
+  variable: "--font-geist-mono",
 });
 
 export const metadata = {
@@ -30,12 +32,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ClientLayout children={children} />
+        <ClientLayout>{children}</ClientLayout>
         <footer className="h-[50px] text-white bg-black hidden md:flex flex-shrink-0 gap-5 items-center justify-center text-center">
           Created with ❤️ by Bishal Mondal
           <Link
             className="z-50"
-            href={"https://www.linkedin.com/in/bishal-mondal-1521aa21b/"}
+            href="https://www.linkedin.com/in/bishal-mondal-1521aa21b/"
             target="_blank"
           >
             <IconBrandLinkedin />
@@ -45,4 +47,3 @@ export default function RootLayout({
     </html>
   );
 }
-

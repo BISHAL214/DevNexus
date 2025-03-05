@@ -2,7 +2,7 @@
 
 import Navbar from "@/components/app_components/app_header/app_header_wrapper";
 import { MobileDockNavigation } from "@/components/app_components/app_header/app_mobile_dock";
-import { useNotifications } from "@/hooks/use-notifications";
+import { useNotificationStore } from "@/store/notification_notificationStore";
 import { SocketProvider } from "@/lib/socket_provider";
 import { useFirebaseStore } from "@/store/firebase_firestore";
 import { useSocketStore } from "@/store/socket_socketstore";
@@ -11,83 +11,98 @@ import AuthListener from "./auth_listener";
 import { Toaster } from "sonner";
 
 export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
-  const [showNotificationBadge, setShowNotificationBadge] = useState(false);
-
-  const { user, refreshUserCache } = useFirebaseStore();
+  const { user } = useFirebaseStore();
   const { socket } = useSocketStore();
   const {
     unreadCount,
+    notifications,
     fetchNotifications,
     listenForNotifications,
     listenForConnectionAccept,
-  } = useNotifications();
+    listenForConnectionDecline,
+    pendingUserRefreshes,
+  } = useNotificationStore();
 
-  // 🛑 Prevent multiple listener registrations
-  const hasRegisteredConnectionListener = useRef(false);
-  const hasRegisteredNotificationListener = useRef(false);
+  const [showNotificationBadge, setShowNotificationBadge] =
+    useState<boolean>(false);
 
-  // 🔄 Fetch notifications only when user ID changes
+  // Refs to prevent multiple listener registrations and track cleanup functions
+  const listenerRefs = useRef({
+    notification: { registered: false, cleanup: null as (() => void) | null },
+    connection_accept: {
+      registered: false,
+      cleanup: null as (() => void) | null,
+    },
+    connection_decline: {
+      registered: false,
+      cleanup: null as (() => void) | null,
+    },
+  });
+
+  // Fetch notifications when user ID changes
   useEffect(() => {
     if (user?.id) {
       fetchNotifications(user.id);
     }
   }, [user?.id]);
 
-  // 🔔 Setup socket listener for notifications (only once)
+  // Setup all socket listeners
   useEffect(() => {
     if (!socket || !user) return;
 
-    if (!hasRegisteredNotificationListener.current) {
-      const cleanup = listenForNotifications(socket, user);
-      hasRegisteredNotificationListener.current = true;
-      if (!cleanup) return;
-      return () => {
-        cleanup();
-        hasRegisteredNotificationListener.current = false; // Reset on unmount
-      };
-    }
+    // Helper to setup a listener with proper cleanup tracking
+    const setupListener = (
+      type: "notification" | "connection_accept" | "connection_decline",
+      listenerFn:
+        | typeof listenForNotifications
+        | typeof listenForConnectionAccept
+        | typeof listenForConnectionDecline
+    ) => {
+      if (!listenerRefs.current[type].registered) {
+        const cleanup = listenerFn(socket, user);
+        if (cleanup) {
+          listenerRefs.current[type].cleanup = cleanup;
+          listenerRefs.current[type].registered = true;
+        }
+      }
+    };
+
+    // Setup all listeners
+    setupListener("notification", listenForNotifications);
+    setupListener("connection_accept", listenForConnectionAccept);
+    setupListener("connection_decline", listenForConnectionDecline);
+
+    // Cleanup function
+    return () => {
+      // Cleanup all listeners
+      Object.values(listenerRefs.current).forEach((ref) => {
+        if (ref.cleanup) {
+          ref.cleanup();
+          ref.registered = false;
+          ref.cleanup = null;
+        }
+      });
+    };
   }, [socket, user]);
 
-  // 🔵 Listen for connection accept events & refresh cache on unload
-  useEffect(() => {
-    if (!socket || !user) return;
-
-    if (!hasRegisteredConnectionListener.current) {
-      const cleanup = listenForConnectionAccept(socket, user);
-      hasRegisteredConnectionListener.current = true;
-
-      // 🔥 Force cache refresh when user leaves (before debounce executes)
-      const handleUnload = () => refreshUserCache(user.id);
-      window.addEventListener("beforeunload", handleUnload);
-      if (!cleanup) return;
-      return () => {
-        cleanup();
-        window.removeEventListener("beforeunload", handleUnload);
-        hasRegisteredConnectionListener.current = false;
-      };
-    }
-  }, [socket, user]);
-
-  // 🔥 Update badge when unread notifications exist
+  // Update badge when unread notifications exist
   useEffect(() => {
     setShowNotificationBadge(unreadCount > 0);
   }, [unreadCount]);
-
-  console.log(user);
 
   return (
     <SocketProvider>
       <Navbar
         unreadNotificationCount={unreadCount}
-        setShowNotificationBadge={setShowNotificationBadge}
         showNotificationBadge={showNotificationBadge}
+        setShowNotificationBadge={setShowNotificationBadge}
       />
       {children}
       <Toaster />
       <MobileDockNavigation
         unreadNotificationCount={unreadCount}
-        setShowNotificationBadge={setShowNotificationBadge}
         showNotificationBadge={showNotificationBadge}
+        setShowNotificationBadge={setShowNotificationBadge}
       />
       <AuthListener />
     </SocketProvider>

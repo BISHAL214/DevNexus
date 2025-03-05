@@ -1,17 +1,19 @@
-import { motion } from "framer-motion";
-import { Check, MessageSquare, Users2Icon, X } from "lucide-react";
-import { format } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Notification } from "./app_notification_list";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { useNotifications } from "@/hooks/use-notifications";
 import {
   handleAcceptConnectionRequest,
   handleNotificationClick,
+  handleDeclineConnectionRequest,
 } from "@/lib/notification_utils";
+import { useNotificationStore } from "@/store/notification_notificationStore";
 import { useSocketStore } from "@/store/socket_socketstore";
+import { format } from "date-fns";
+import { motion } from "framer-motion";
+import { Check, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Notification } from "./app_notification_list";
+import { useFirebaseStore } from "@/store/firebase_firestore";
 
 export function NotificationItem({
   type,
@@ -22,16 +24,24 @@ export function NotificationItem({
   isRead,
   reciever,
   typeId,
+  status,
 }: Notification) {
   const router = useRouter();
   const [isAlreadyRead, setIsAlreadyRead] = useState(isRead);
   const [showConnectionActions, setShowConnectionActions] = useState(
-    type.toLowerCase() === "connection_request"
+    !status
+      ? type.toLowerCase() === "connection_request"
+      : type.toLowerCase() === "connection_request" && status === "PENDING"
   );
-  const [showDeleteNotification, setShowDeleteNotification] = useState(false);
+  const [showDeleteNotification, setShowDeleteNotification] = useState(
+    status === "ACCEPTED"
+  );
   const { markSpecificNotificationAsRead, deleteNotification } =
-    useNotifications();
+    useNotificationStore();
   const { socket } = useSocketStore();
+  const { user } = useFirebaseStore();
+
+  // console.log(message, status);
 
   return (
     <motion.div
@@ -87,7 +97,21 @@ export function NotificationItem({
           >
             <Check className="text-green-500" />
           </Button>
-          <Button className="rounded-full bg-white/5 hover:bg-white/10 w-10 h-10 flex justify-center items-center">
+          <Button
+            className="rounded-full bg-white/5 hover:bg-white/10 w-10 h-10 flex justify-center items-center"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeclineConnectionRequest(
+                deleteNotification,
+                id,
+                sender?.id,
+                reciever?.id,
+                socket,
+                typeId,
+                user?.id
+              );
+            }}
+          >
             <X className="text-red-500" />
           </Button>
         </div>

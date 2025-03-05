@@ -144,18 +144,57 @@ export const useFirebaseStore = create<firestoreInterface>((set) => ({
     });
   },
 
-  refreshUserCache: async (userId: string) => {
+  refreshUserCache: async (userId: string): Promise<boolean> => {
     // This will be our debounced function to refresh Redis cache
     try {
+      if (!userId) {
+        console.error("❌ refreshUserCache called with no userId");
+        return false;
+      }
+
+      console.log("🔄 Starting cache refresh for user:", userId, "at:", new Date().toISOString());
+      const startTime = performance.now();
+
+      // Add a small delay to ensure the database has the latest data
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       const { success, message, uppdatedUser } = await updateUserCache(userId);
-      if (success) {
-        set({ user: { ...uppdatedUser }, user_loading: false });
-        console.log("Cache refresh successful:", message);
+
+      const endTime = performance.now();
+      console.log(`⏱️ Cache refresh took ${((endTime - startTime) / 1000).toFixed(2)} seconds`);
+
+      if (success && uppdatedUser) {
+        console.log("✅ Cache refresh successful, updating local state with data:", uppdatedUser.id);
+        // First verify we have all required user data
+        if (!uppdatedUser.id || !uppdatedUser.firebase_uid) {
+          console.error("❌ Updated user data is incomplete:", uppdatedUser);
+          return false;
+        }
+
+        set((state) => {
+          // Preserve any existing user data that wasn't in the cache update
+          const currentUser = state.user || {};
+          const updatedState = {
+            user: {
+              ...currentUser,
+              ...uppdatedUser,
+              // Ensure critical fields are preserved
+              firebase_uid: uppdatedUser.firebase_uid || currentUser.firebase_uid,
+            },
+            user_loading: false
+          };
+          console.log("📝 Updated user state with new data");
+          return updatedState;
+        });
+
+        return true;
       } else {
-        console.error("Cache refresh failed:", message);
+        console.error("❌ Cache refresh failed:", message);
+        return false;
       }
     } catch (error) {
-      console.error("Cache refresh failed from catch error:", error);
+      console.error("❌ Cache refresh failed with error:", error);
+      return false;
     }
   },
 }));

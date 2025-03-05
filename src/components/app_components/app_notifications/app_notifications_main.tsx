@@ -1,14 +1,12 @@
 "use client";
-import { useNotifications } from "@/hooks/use-notifications";
 import React, { useEffect } from "react";
 import { NotificationTabs } from "./app_notifications_tabs";
 import { NotificationList } from "./app_notification_list";
 import { useFirebaseStore } from "@/store/firebase_firestore";
 import { useSocketStore } from "@/store/socket_socketstore";
+import { useNotificationStore } from "@/store/notification_notificationStore"; // Import Zustand store
 
-type Props = {};
-
-const UserNotificationsMain = (props: Props) => {
+const UserNotificationsMain = () => {
   const { user } = useFirebaseStore();
   const { socket } = useSocketStore();
   const {
@@ -16,31 +14,17 @@ const UserNotificationsMain = (props: Props) => {
     setActiveNotificationTab,
     activeNotifications,
     fetchNotifications,
-    markAllAsRead,
-    addNotification,
-    notifications,
-  } = useNotifications();
+  } = useNotificationStore();
 
+  // Fetch notifications when user ID changes
   useEffect(() => {
     if (user?.id) {
-      fetchNotifications(user?.id);
+      fetchNotifications(user.id);
     }
-  }, [user, notifications.length, activeNotifications.length]);
+  }, [user?.id]);
 
-  // Listen for new notifications if on the notification page
-  useEffect(() => {
-    if (socket && user?.id) {
-      const handleNewNotification = (data: any) => {
-        console.log("🔔 New notification:", data);
-        addNotification(data.notification);
-      };
-
-      socket.on("new_connection_request", handleNewNotification);
-      return () => {
-        socket.off("new_connection_request", handleNewNotification);
-      };
-    }
-  }, [socket, user]);
+  // console.log("UserNotificationsMain", activeNotifications);
+  console.log(user);
 
   return (
     <div className="max-w-3xl mx-auto bg-transparent p-2 md:p-6">
@@ -53,8 +37,10 @@ const UserNotificationsMain = (props: Props) => {
         activeTab={activeNotificationTab}
         setActiveTab={setActiveNotificationTab}
       />
-      {activeNotifications && (
+      {activeNotifications.length > 0 ? (
         <NotificationList notifications={activeNotifications} />
+      ) : (
+        <p className="text-white text-center mt-4">No notifications yet.</p>
       )}
     </div>
   );

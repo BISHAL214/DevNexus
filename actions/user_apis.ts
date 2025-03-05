@@ -6,14 +6,13 @@ import {
   redis_port,
   redis_userName,
 } from "@/constants/redis_creds";
-import { Location, User } from "@/interfaces/app_database_models";
+import { Location } from "@/interfaces/app_database_models";
 import { __cosineSimilarity } from "@/lib/__cosine_similarity";
 import {
   __getCurrentTechTrends,
   __getUserEmbedding,
 } from "@/lib/gen_ai_functions";
 import { prisma } from "@/lib/prisma";
-import { JsonValue } from "@prisma/client/runtime/library";
 import { createClient } from "redis";
 
 const redisClient = createClient({
@@ -39,7 +38,7 @@ const getFromCache = async (key: string) => {
 };
 
 // Helper function to set data in Redis
-const setInCache = async (key: string, data: any, ttl: number) => {
+const setInCache = async (key: string, data: any, ttl?: number) => {
   try {
     await redisClient.set(key, JSON.stringify(data), {
       EX: ttl, // Set expiration time in seconds
@@ -55,6 +54,25 @@ interface globalReturnType {
   message: string;
 }
 
+// export const setPendingUserRefreshes = async (userIdArr: string[]) => {
+//   try {
+//     const cacheKey = `pendingUserRefreshes`; // Unique cache key
+//     await setInCache(cacheKey, userIdArr);
+//   } catch (error) {
+//     console.log("Error setting pending user refreshes:", error);
+//   }
+// }
+
+// export const getPendingUserRefreshes = (): Promise<string[]> | null => {
+//   try {
+//     const cacheKey = `pendingUserRefreshes`; // Unique cache key
+//     return getFromCache(cacheKey);
+//   } catch (error) {
+//     console.log("Error getting pending user refreshes:", error);
+//     return null;
+//   }
+// }
+
 // for Authentication only
 export const getUserById = async (firebase_uid: string) => {
   const cacheKey = `userById:${firebase_uid}`; // Unique cache key based on the user
@@ -69,6 +87,8 @@ export const getUserById = async (firebase_uid: string) => {
       user_data: null,
     };
   }
+
+  // redisClient.del(cacheKey); // Delete the cache for testing
 
   try {
     // Check if data exists in the cache
@@ -180,18 +200,26 @@ export const getUserById = async (firebase_uid: string) => {
     };
   }
 };
-
 // user cache update
 interface UpdateUserCacheResponse extends globalReturnType {
   uppdatedUser?: any;
 }
+
 export const updateUserCache = async (
   userId: string
 ): Promise<UpdateUserCacheResponse> => {
   try {
-    const cacheKey = `userById:${userId}`;
-    const cacheTTL = 24 * 24 * 60 * 60; // Cache duration in seconds (48 hours)
-    // override the existing cache by fetching the fresh data from the database
+    if (!userId) {
+      console.error("❌ User ID not provided");
+      return {
+        success: false,
+        message: "User ID not provided",
+      };
+    }
+    const startTime = Date.now();
+    console.log("🔄 Updating user cache");
+
+    // Get fresh data from database
     const freshUserData = await prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -258,12 +286,19 @@ export const updateUserCache = async (
         slug: true,
       },
     });
-
+    if (!freshUserData) {
+      console.error("❌ Failed to fetch fresh user data");
+      return {
+        success: false,
+        message: "Failed to fetch fresh user data",
+      };
+    }
+    const cacheKey = `userById:${freshUserData?.firebase_uid}`; // Use the same cache key format as getUserById
+    const cacheTTL = 24 * 24 * 60 * 60; // Cache duration in seconds (48 hours)
     // Store the data in Redis cache
     await setInCache(cacheKey, freshUserData, cacheTTL);
-    console.log(
-      "Cache refreshed successfully, returning updated fresh user data"
-    );
+    const endTime = Date.now();
+    console.log(`✅ Cache updated successfully in ${(endTime - startTime) / 1000} seconds for key:`, cacheKey);
     return {
       success: true,
       message: "Cache refreshed successfully",
@@ -271,12 +306,13 @@ export const updateUserCache = async (
     };
   } catch (error) {
     if (error instanceof Error) {
-      console.log("Error: ", error.stack);
+      console.error("❌ Cache refresh error:", error.stack);
       return {
         success: false,
-        message: error.message ? error.message : "Cache refresh failed",
+        message: error.message || "Cache refresh failed",
       };
     } else {
+      console.error("❌ Unknown cache refresh error:", error);
       return {
         success: false,
         message: "Something went wrong in refreshing cache",
@@ -300,18 +336,6 @@ export const createUserWithSkillsAndLocation = async (
   cover_image?: string | null
 ) => {
   try {
-    // console.log("Starting user creation...");
-    // console.log("User ID:", userId);
-    // console.log("Name:", name);
-    // console.log("Email:", email);
-    // console.log("GitHub ID:", githubId);
-    // console.log("Avatar:", avatar);
-    // console.log("Bio:", bio);
-    // console.log("Skills:", skills);
-    // console.log("Interests:", interests);
-    // console.log("Experience:", experience);
-    // console.log("Location:", location);
-
     // step 1: Generate user embedding and store along the the new user
     const lowercased_skills = skills.map((skill) =>
       skill.replace(/\s+/g, "").toLowerCase()
@@ -505,9 +529,9 @@ export const getRecommendedDevelopers = async (userId: string) => {
         score:
           user.embedding && dev.embedding
             ? await __cosineSimilarity(
-                user.embedding as number[],
-                dev.embedding as number[]
-              )
+              user.embedding as number[],
+              dev.embedding as number[]
+            )
             : 0,
       }))
     );
@@ -915,7 +939,7 @@ export const getUsersNotifications = async (userId: string) => {
       },
     });
 
-    if (!usersNotifications) {
+    if (usersNotifications.length === 0) {
       return {
         success: false,
         message: "Notifications not found",
@@ -1021,3 +1045,56 @@ export const deleteNotificationById = async (notification_id: string) => {
     };
   }
 };
+interface IsConnAcceptedNoti extends globalReturnType {
+  id_status_map: { id: string, status: string }[];
+}
+export const checkNotificationForAcceptedConnection = async (conn_ids: string[]): Promise<IsConnAcceptedNoti> => {
+  try {
+    if (conn_ids.length === 0) {
+      return {
+        success: false,
+        message: "Connection IDs not provided",
+        id_status_map: [],
+      }
+    }
+
+    const startTime = Date.now();
+
+    const id_status_map = await prisma.connection.findMany({
+      where: {
+        id: {
+          in: conn_ids,
+        }
+      },
+      select: {
+        id: true,
+        status: true,
+      }
+    })
+
+    if (id_status_map.length === 0) {
+      return {
+        success: false,
+        message: "No connection found",
+        id_status_map: [],
+      }
+    }
+
+    const endTime = Date.now();
+    console.log(`Execution Time: ${(endTime - startTime) / 1000} seconds`);
+
+    return {
+      success: true,
+      message: "Connection found",
+      id_status_map,
+    }
+
+  } catch (error: any) {
+    if (error instanceof Error) console.log("Error: ", error.stack);
+    return {
+      success: false,
+      message: error.message || "Error checking connection status",
+      id_status_map: [],
+    }
+  }
+} 

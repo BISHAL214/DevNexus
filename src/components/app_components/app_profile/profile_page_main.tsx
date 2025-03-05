@@ -12,6 +12,8 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Loader } from "../app_loader/__loader";
+import { SEND_CONNECTION_REQUEST } from "@/constants/socket_events";
+
 const UserProfilePageMain = () => {
   const params = useParams();
   const profileSlug = params?.profileSlug;
@@ -40,7 +42,7 @@ const UserProfilePageMain = () => {
       return;
     }
 
-    socket.emit("send_connection_request", {
+    socket.emit(SEND_CONNECTION_REQUEST, {
       senderId: user.id,
       recieverId: user_details?.userDetails?.id,
     });
