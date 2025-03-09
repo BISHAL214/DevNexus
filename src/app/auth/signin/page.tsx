@@ -1,13 +1,18 @@
 "use client";
 
-import GeometricBackground from "@/components/app_components/app_background_pattern/app_geometric_background";
-import BackgroundPattern from "@/components/app_components/app_background_pattern/background_pattern";
 import { Loader } from "@/components/app_components/app_loader/__loader";
+import LiquidBlob from "@/components/app_components/blobs/liquid-blob";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useFirebaseStore } from "@/store/firebase_firestore";
+import { IconEyeClosed, IconBrandGoogle } from "@tabler/icons-react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Chrome, Github } from "lucide-react";
+import {
+  ArrowLeft,
+  Chrome,
+  EyeIcon,
+  Github
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -16,6 +21,7 @@ import { toast } from "sonner";
 const SignInPage = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const { google_sign_in, github_sign_in } = useFirebaseStore();
 
   const handle_signIn = async (provider: string) => {
@@ -42,7 +48,19 @@ const SignInPage = () => {
   };
 
   return (
-    <GeometricBackground>
+    <div className="relative min-h-screen bg-slate-900 w-full overflow-hidden flex">
+      {/* <GeometricBackground> */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <LiquidBlob />
+        {/* <AnimatedBlob 
+          className="w-full h-full" 
+          // colors={{ 
+          //   primary: isDarkMode ? '#2d1b69' : '#4f46e5', 
+          //   secondary: isDarkMode ? '#1c1033' : '#7c3aed' 
+          // }}
+          size={7}
+        /> */}
+      </div>
       {loading && (
         <motion.div
           className="h-screen w-full flex items-center justify-center bg-black/5 backdrop-blur-md"
@@ -75,11 +93,83 @@ const SignInPage = () => {
                   </span>
                 </h1>
                 <p className="text-gray-400">
-                  Sign in to your account to continue
+                  Welcome Back to the Developer's Hub
                 </p>
               </div>
 
-              <div className="space-y-4">
+              <div>
+                <form>
+                  <div className="space-y-4">
+                    <div className="space-y-1">
+                      <label
+                        htmlFor="email"
+                        className="text-white text-sm font-medium"
+                      >
+                        Email Address
+                      </label>
+                      <input
+                        type="email"
+                        id="email"
+                        placeholder="
+                                    Enter your email address"
+                        className="w-full py-3 px-4 bg-white/5 text-white rounded-2xl
+                                    border border-white/10 focus:outline-none focus:border-white/20 transition-all duration-200"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label
+                        htmlFor="password"
+                        className="text-white text-sm font-medium"
+                      >
+                        Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={passwordVisible ? "text" : "password"}
+                          id="password"
+                          placeholder="Enter your password"
+                          className="w-full py-3 px-4 bg-white/5 text-white rounded-2xl
+                                    border border-white/10 focus:outline-none focus:border-white/20 transition-all duration-200"
+                        />
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                          {passwordVisible ? (
+                            <EyeIcon
+                              className="w-5 h-5 text-white cursor-pointer"
+                              onClick={() => setPasswordVisible(false)}
+                            />
+                          ) : (
+                            <IconEyeClosed
+                              className="w-5 h-5 text-white cursor-pointer"
+                              onClick={() => setPasswordVisible(true)}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <Button variant="link" className="text-white">
+                        Forgot Password?
+                      </Button>
+                    </div>
+                    <div className="space-y-4">
+                      <Button
+                        // variant="primary"
+                        className="w-full"
+                        onClick={() => handle_signIn("email")}
+                      >
+                        Sign In
+                      </Button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+              {/* <!-- Separator between social media sign in and email/password sign in --> */}
+              <div className="my-4 flex items-center before:mt-0.5 before:flex-1 before:border-t before:border-neutral-300 after:mt-0.5 after:flex-1 after:border-t after:border-neutral-300">
+                <p className="mx-4 mb-0 text-center font-semibold text-white">
+                  Or
+                </p>
+              </div>
+              <div className="flex space-x-4">
                 <motion.button
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
@@ -87,10 +177,7 @@ const SignInPage = () => {
                   className="flex items-center justify-center w-full py-3 px-4 bg-white/5 text-white rounded-2xl 
                   border border-white/10 hover:bg-white/10 transition-all duration-200 space-x-3"
                 >
-                  <Chrome className="w-5 h-5 text-white" />
-                  <span className="text-sm font-medium">
-                    Continue with Google
-                  </span>
+                  <IconBrandGoogle className="w-5 h-5 text-white" />
                 </motion.button>
 
                 <motion.button
@@ -100,10 +187,7 @@ const SignInPage = () => {
                   className="flex items-center justify-center w-full py-3 px-4 bg-white/5 text-white rounded-2xl 
                   border border-white/10 hover:bg-white/10 transition-all duration-200 space-x-3"
                 >
-                  <Github className="w-5 h-5" />
-                  <span className="text-sm font-medium">
-                    Continue with GitHub
-                  </span>
+                  <Github className="w-5 h-5" />  
                 </motion.button>
               </div>
 
@@ -120,7 +204,8 @@ const SignInPage = () => {
           </div>
         </motion.div>
       </div>
-    </GeometricBackground>
+      {/* </GeometricBackground> */}
+    </div>
   );
 };
 

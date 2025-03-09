@@ -1,35 +1,19 @@
-import { create } from "zustand";
+import { checkIfEmailExistsInFirebaseAuth } from "@/firebase/__helpers";
+import {
+  firebase_auth,
+  github_provider,
+  google_provider,
+} from "@/firebase/__init";
+import { firestoreInterface } from "@/interfaces/app_firebase";
 import {
   createUserWithEmailAndPassword,
-  getAuth,
-  GoogleAuthProvider,
   onAuthStateChanged,
-  reload,
   sendEmailVerification,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
 } from "firebase/auth";
-import {
-  firebase_auth,
-  firebase_storage,
-  google_provider,
-  github_provider,
-} from "@/firebase/__init";
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  serverTimestamp,
-  setDoc,
-  where,
-} from "firebase/firestore";
-import axios from "axios";
-import { User } from "@/interfaces/app_database_models";
-import { firestoreInterface } from "@/interfaces/app_firebase";
-import { prisma } from "@/lib/prisma";
+import { create } from "zustand";
 import { getUserById, updateUserCache } from "../../actions/user_apis";
 import { useSocketStore } from "./socket_socketstore";
 
@@ -42,6 +26,70 @@ export const useFirebaseStore = create<firestoreInterface>((set) => ({
   sign_out: async () => {
     // Implementation here
     return signOut(firebase_auth);
+  },
+
+  email_sign_in: async (email: string, password: string) => {
+    try {
+      const result = await signInWithEmailAndPassword(
+        firebase_auth,
+        email,
+        password
+      );
+      if (result && result?.user) {
+        const uid = result.user.uid;
+        // find if the user exists or onboarded in the database
+        const existing_user = await getUserById(uid);
+        if (
+          existing_user?.error &&
+          existing_user?.message === "User not found"
+        ) {
+          return { user: result.user, is_onboarded: false };
+        }
+        return { user: result?.user, is_onboarded: true };
+      }
+    } catch (error: any) {
+      console.log(error.message);
+      return {
+        success: false,
+        message: error.message ? error.message : "Something Went Wrong.",
+      };
+    }
+  },
+
+  email_sign_up: async (email: string, password: string) => {
+    try {
+      // check the email is alreayd registered or not
+      const { exists, exists_method, error } = await checkIfEmailExistsInFirebaseAuth(
+        email,
+        firebase_auth
+      );
+
+      if(exists && exists_method && !error) {
+          let all_methods: string = ""
+          exists_method.forEach((method: string) => {
+            // const MethodIcon  = methodIconMap[method as keyof typeof methodIconMap];
+            all_methods += method + ", ";
+          });
+
+          return { success: false, message: `Email already registered with these methods: ${all_methods}` };
+      }
+
+      const result = await createUserWithEmailAndPassword(
+        firebase_auth,
+        email,
+        password
+      );
+      if (result && result?.user) {
+        await sendEmailVerification(result.user);
+        return { user: result.user };
+      }
+    } catch (error: any) {
+      console.log(error.message);
+      return {
+        success: false,
+        message: error.message ? error.message : "Something Went Wrong.",
+      };
+    }
   },
 
   google_sign_in: async () => {
@@ -152,19 +200,31 @@ export const useFirebaseStore = create<firestoreInterface>((set) => ({
         return false;
       }
 
-      console.log("🔄 Starting cache refresh for user:", userId, "at:", new Date().toISOString());
+      console.log(
+        "🔄 Starting cache refresh for user:",
+        userId,
+        "at:",
+        new Date().toISOString()
+      );
       const startTime = performance.now();
 
       // Add a small delay to ensure the database has the latest data
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const { success, message, uppdatedUser } = await updateUserCache(userId);
 
       const endTime = performance.now();
-      console.log(`⏱️ Cache refresh took ${((endTime - startTime) / 1000).toFixed(2)} seconds`);
+      console.log(
+        `⏱️ Cache refresh took ${((endTime - startTime) / 1000).toFixed(
+          2
+        )} seconds`
+      );
 
       if (success && uppdatedUser) {
-        console.log("✅ Cache refresh successful, updating local state with data:", uppdatedUser.id);
+        console.log(
+          "✅ Cache refresh successful, updating local state with data:",
+          uppdatedUser.id
+        );
         // First verify we have all required user data
         if (!uppdatedUser.id || !uppdatedUser.firebase_uid) {
           console.error("❌ Updated user data is incomplete:", uppdatedUser);
@@ -179,9 +239,10 @@ export const useFirebaseStore = create<firestoreInterface>((set) => ({
               ...currentUser,
               ...uppdatedUser,
               // Ensure critical fields are preserved
-              firebase_uid: uppdatedUser.firebase_uid || currentUser.firebase_uid,
+              firebase_uid:
+                uppdatedUser.firebase_uid || currentUser.firebase_uid,
             },
-            user_loading: false
+            user_loading: false,
           };
           console.log("📝 Updated user state with new data");
           return updatedState;
