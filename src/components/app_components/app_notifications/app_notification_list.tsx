@@ -1,5 +1,6 @@
 import { AnimatePresence } from "framer-motion";
 import { NotificationItem } from "./app_notifications_items";
+import { log } from "node:console";
 
 export interface Notification {
   id: string;
@@ -28,7 +29,6 @@ interface NotificationListProps {
 
 export function NotificationList({ notifications }: NotificationListProps) {
   // console.log("🔔 Notifications:", notifications)
-
   return (
     <div className="space-y-4">
       <AnimatePresence>

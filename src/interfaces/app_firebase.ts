@@ -1,10 +1,18 @@
+import { ZodString } from "zod";
+
 export interface firestoreInterface {
   user: any | null;
   error: any | null;
   is_error: boolean;
   user_loading: boolean;
-  email_sign_in: (email: string, password: string) => Promise<any>;
-  email_sign_up: (email: string, password: string) => Promise<any>;
+  email_sign_in: (
+    email: string | ZodString,
+    password: string | ZodString,
+  ) => Promise<any>;
+  email_sign_up: (
+    email: string | ZodString,
+    password: string | ZodString,
+  ) => Promise<any>;
   sign_out: () => Promise<void>;
   google_sign_in: () => Promise<any>;
   github_sign_in: () => Promise<any>;

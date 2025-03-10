@@ -16,6 +16,7 @@ import {
 import { create } from "zustand";
 import { getUserById, updateUserCache } from "../../actions/user_apis";
 import { useSocketStore } from "./socket_socketstore";
+import { ZodString } from "zod";
 
 export const useFirebaseStore = create<firestoreInterface>((set) => ({
   user: null,
@@ -28,12 +29,15 @@ export const useFirebaseStore = create<firestoreInterface>((set) => ({
     return signOut(firebase_auth);
   },
 
-  email_sign_in: async (email: string, password: string) => {
+  email_sign_in: async (
+    email: string | ZodString,
+    password: string | ZodString,
+  ) => {
     try {
       const result = await signInWithEmailAndPassword(
         firebase_auth,
-        email,
-        password
+        email as string,
+        password as string,
       );
       if (result && result?.user) {
         const uid = result.user.uid;
@@ -49,6 +53,7 @@ export const useFirebaseStore = create<firestoreInterface>((set) => ({
       }
     } catch (error: any) {
       console.log(error.message);
+      console.log(error);
       return {
         success: false,
         message: error.message ? error.message : "Something Went Wrong.",
@@ -56,38 +61,42 @@ export const useFirebaseStore = create<firestoreInterface>((set) => ({
     }
   },
 
-  email_sign_up: async (email: string, password: string) => {
+  email_sign_up: async (
+    email: string | ZodString,
+    password: string | ZodString,
+  ) => {
     try {
       // check the email is alreayd registered or not
-      const { exists, exists_method, error } = await checkIfEmailExistsInFirebaseAuth(
-        email,
-        firebase_auth
-      );
+      const { exists, exists_method, error } =
+        await checkIfEmailExistsInFirebaseAuth(email as string, firebase_auth);
 
-      if(exists && exists_method && !error) {
-          let all_methods: string = ""
-          exists_method.forEach((method: string) => {
-            // const MethodIcon  = methodIconMap[method as keyof typeof methodIconMap];
-            all_methods += method + ", ";
-          });
+      if (exists && exists_method && !error) {
+        let all_methods: string = "";
+        exists_method.forEach((method: string) => {
+          // const MethodIcon  = methodIconMap[method as keyof typeof methodIconMap];
+          all_methods += method + ", ";
+        });
 
-          return { success: false, message: `Email already registered with these methods: ${all_methods}` };
+        return {
+          success: false,
+          message: `Email already registered with these methods: ${all_methods}`,
+        };
       }
 
       const result = await createUserWithEmailAndPassword(
         firebase_auth,
-        email,
-        password
+        email as string,
+        password as string,
       );
       if (result && result?.user) {
         await sendEmailVerification(result.user);
         return { user: result.user };
       }
     } catch (error: any) {
-      console.log(error.message);
+      console.log(error?.message);
       return {
         success: false,
-        message: error.message ? error.message : "Something Went Wrong.",
+        message: error?.message ? error?.message : "Something Went Wrong.",
       };
     }
   },
@@ -204,7 +213,7 @@ export const useFirebaseStore = create<firestoreInterface>((set) => ({
         "🔄 Starting cache refresh for user:",
         userId,
         "at:",
-        new Date().toISOString()
+        new Date().toISOString(),
       );
       const startTime = performance.now();
 
@@ -216,14 +225,14 @@ export const useFirebaseStore = create<firestoreInterface>((set) => ({
       const endTime = performance.now();
       console.log(
         `⏱️ Cache refresh took ${((endTime - startTime) / 1000).toFixed(
-          2
-        )} seconds`
+          2,
+        )} seconds`,
       );
 
       if (success && uppdatedUser) {
         console.log(
           "✅ Cache refresh successful, updating local state with data:",
-          uppdatedUser.id
+          uppdatedUser.id,
         );
         // First verify we have all required user data
         if (!uppdatedUser.id || !uppdatedUser.firebase_uid) {
