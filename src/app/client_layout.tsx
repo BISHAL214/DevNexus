@@ -56,7 +56,7 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
       listenerFn:
         | typeof listenForNotifications
         | typeof listenForConnectionAccept
-        | typeof listenForConnectionDecline
+        | typeof listenForConnectionDecline,
     ) => {
       if (!listenerRefs.current[type].registered) {
         const cleanup = listenerFn(socket, user);

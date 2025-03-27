@@ -14,6 +14,8 @@ import {
 } from "@/lib/gen_ai_functions";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "redis";
+import nodemailer from "nodemailer";
+import { log } from "node:console";
 
 const redisClient = createClient({
   username: redis_userName,
@@ -72,6 +74,92 @@ interface globalReturnType {
 //     return null;
 //   }
 // }
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.NODEMAILER_GMAIL,
+    pass: process.env.NODEMAILER_GMAIL_PASS,
+  },
+});
+
+export const sendEmailVerificationOtp = async (email: string) => {
+  // Send email verification OTP
+  // use nodemailer to send otp and set the otp in redis cache in a hash table format where for each users the data should have the ttl of 5 minutes
+  // and the key should be the email and the value should be the otp
+  const otp = Math.floor(100000 + Math.random() * 900000);
+  const cacheKey = `emailOtp:${email}`;
+  try {
+    await redisClient.hSet(cacheKey, "otp", otp);
+    await redisClient.expire(cacheKey, 300); // 5 minutes
+    const mailOptions = {
+      from: "DevNexus",
+      to: email,
+      subject: "Email Verification OTP, DevNexus",
+      // write a professional template text for the email
+      text: `
+      Hello there,
+      Your OTP for email verification is ${otp}.
+      Please enter this OTP to verify your email.
+      This OTP is valid for 5 minutes only.
+      Thank you for using DevNexus.
+      `,
+    };
+    await transporter.sendMail(mailOptions);
+    return {
+      success: true,
+      message: "Verification OTP sent successfully to your email",
+    };
+  } catch (error) {
+    console.error("Error sending email:", error);
+    return {
+      success: false,
+      message: "Error sending verification OTP to your email, please try again",
+    };
+  }
+};
+
+export const verifyEmailVerificationOtp = async (
+  email: string,
+  otp: string,
+) => {
+  const cacheKey = `emailOtp:${email}`;
+  try {
+    const cachedOtp = await redisClient.hGet(cacheKey, "otp");
+    if (cachedOtp === otp) {
+      return {
+        success: true,
+        message: "Email verified successfully",
+      };
+    }
+    return {
+      success: false,
+      message: "Invalid OTP",
+    };
+  } catch (error) {
+    console.error("Error verifying email OTP:", error);
+    return {
+      success: false,
+      message: "Error verifying OTP",
+    };
+  }
+};
+
+export const resendEmailVerificationOtp = async (email: string) => {
+  // if the user wants to resend the otp then we can use the same function as sendEmailVerificationOtp but
+  // first remove that key from the redis cache and then send the otp again
+  const cacheKey = `emailOtp:${email}`;
+  try {
+    await redisClient.del(cacheKey);
+    return sendEmailVerificationOtp(email);
+  } catch (error) {
+    console.error("Error resending email OTP:", error);
+    return {
+      success: false,
+      message: "Error resending OTP",
+    };
+  }
+};
 
 // for Authentication only
 export const getUserById = async (firebase_uid: string) => {
@@ -206,7 +294,7 @@ interface UpdateUserCacheResponse extends globalReturnType {
 }
 
 export const updateUserCache = async (
-  userId: string
+  userId: string,
 ): Promise<UpdateUserCacheResponse> => {
   try {
     if (!userId) {
@@ -298,7 +386,10 @@ export const updateUserCache = async (
     // Store the data in Redis cache
     await setInCache(cacheKey, freshUserData, cacheTTL);
     const endTime = Date.now();
-    console.log(`✅ Cache updated successfully in ${(endTime - startTime) / 1000} seconds for key:`, cacheKey);
+    console.log(
+      `✅ Cache updated successfully in ${(endTime - startTime) / 1000} seconds for key:`,
+      cacheKey,
+    );
     return {
       success: true,
       message: "Cache refreshed successfully",
@@ -333,15 +424,15 @@ export const createUserWithSkillsAndLocation = async (
   experience: number | null,
   location: Location,
   headline?: string | null,
-  cover_image?: string | null
+  cover_image?: string | null,
 ) => {
   try {
     // step 1: Generate user embedding and store along the the new user
     const lowercased_skills = skills.map((skill) =>
-      skill.replace(/\s+/g, "").toLowerCase()
+      skill.replace(/\s+/g, "").toLowerCase(),
     );
     const lowercased_interests = interests.map((interest) =>
-      interest.replace(/\s+/g, "").toLowerCase()
+      interest.replace(/\s+/g, "").toLowerCase(),
     );
     const final_embedding_data = [
       ...lowercased_skills,
@@ -529,11 +620,11 @@ export const getRecommendedDevelopers = async (userId: string) => {
         score:
           user.embedding && dev.embedding
             ? await __cosineSimilarity(
-              user.embedding as number[],
-              dev.embedding as number[]
-            )
+                user.embedding as number[],
+                dev.embedding as number[],
+              )
             : 0,
-      }))
+      })),
     );
 
     // Sort by highest similarity score
@@ -1046,16 +1137,18 @@ export const deleteNotificationById = async (notification_id: string) => {
   }
 };
 interface IsConnAcceptedNoti extends globalReturnType {
-  id_status_map: { id: string, status: string }[];
+  id_status_map: { id: string; status: string }[];
 }
-export const checkNotificationForAcceptedConnection = async (conn_ids: string[]): Promise<IsConnAcceptedNoti> => {
+export const checkNotificationForAcceptedConnection = async (
+  conn_ids: string[],
+): Promise<IsConnAcceptedNoti> => {
   try {
     if (conn_ids.length === 0) {
       return {
         success: false,
         message: "Connection IDs not provided",
         id_status_map: [],
-      }
+      };
     }
 
     const startTime = Date.now();
@@ -1064,20 +1157,20 @@ export const checkNotificationForAcceptedConnection = async (conn_ids: string[])
       where: {
         id: {
           in: conn_ids,
-        }
+        },
       },
       select: {
         id: true,
         status: true,
-      }
-    })
+      },
+    });
 
     if (id_status_map.length === 0) {
       return {
         success: false,
         message: "No connection found",
         id_status_map: [],
-      }
+      };
     }
 
     const endTime = Date.now();
@@ -1087,14 +1180,13 @@ export const checkNotificationForAcceptedConnection = async (conn_ids: string[])
       success: true,
       message: "Connection found",
       id_status_map,
-    }
-
+    };
   } catch (error: any) {
     if (error instanceof Error) console.log("Error: ", error.stack);
     return {
       success: false,
       message: error.message || "Error checking connection status",
       id_status_map: [],
-    }
+    };
   }
-} 
+};

@@ -1,4 +1,3 @@
-import { checkIfEmailExistsInFirebaseAuth } from "@/firebase/__helpers";
 import {
   firebase_auth,
   github_provider,
@@ -14,7 +13,11 @@ import {
   signOut,
 } from "firebase/auth";
 import { create } from "zustand";
-import { getUserById, updateUserCache } from "../../actions/user_apis";
+import {
+  getUserById,
+  sendEmailVerificationOtp,
+  updateUserCache,
+} from "../../actions/user_apis";
 import { useSocketStore } from "./socket_socketstore";
 import { ZodString } from "zod";
 
@@ -66,37 +69,59 @@ export const useFirebaseStore = create<firestoreInterface>((set) => ({
     password: string | ZodString,
   ) => {
     try {
-      // check the email is alreayd registered or not
-      const { exists, exists_method, error } =
-        await checkIfEmailExistsInFirebaseAuth(email as string, firebase_auth);
-
-      if (exists && exists_method && !error) {
-        let all_methods: string = "";
-        exists_method.forEach((method: string) => {
-          // const MethodIcon  = methodIconMap[method as keyof typeof methodIconMap];
-          all_methods += method + ", ";
-        });
-
-        return {
-          success: false,
-          message: `Email already registered with these methods: ${all_methods}`,
-        };
-      }
-
+      // // check the email is alreayd registered or not
+      // const { exists, exists_method, error } =
+      //   await checkIfEmailExistsInFirebaseAuth(email as string, firebase_auth);
+      //
+      // if (exists && exists_method && !error) {
+      //   let all_methods: string = "";
+      //   exists_method.forEach((method: string) => {
+      //     // const MethodIcon  = methodIconMap[method as keyof typeof methodIconMap];
+      //     all_methods += method + ", ";
+      //   });
+      //
+      //   return {
+      //     success: false,
+      //     message: `Email already registered with these methods: ${all_methods}`,
+      //     user: null,
+      //   };
+      // }
+      //
       const result = await createUserWithEmailAndPassword(
         firebase_auth,
         email as string,
         password as string,
       );
       if (result && result?.user) {
-        await sendEmailVerification(result.user);
-        return { user: result.user };
+        const { success, message } = await sendEmailVerificationOtp(
+          result?.user?.email as string,
+        );
+        if (!success) {
+          return {
+            success: false,
+            message: message,
+            user: null,
+          };
+        }
+        return {
+          success: true,
+          message: message,
+          user: result.user,
+        };
       }
     } catch (error: any) {
       console.log(error?.message);
+      if (error?.message === "Firebase: Error (auth/email-already-in-use).") {
+        return {
+          success: false,
+          message: "Email already in use.",
+          user: null,
+        };
+      }
       return {
         success: false,
         message: error?.message ? error?.message : "Something Went Wrong.",
+        user: null,
       };
     }
   },
@@ -160,7 +185,7 @@ export const useFirebaseStore = create<firestoreInterface>((set) => ({
     console.log("Listening to auth changes");
     onAuthStateChanged(firebase_auth, async (firebaseUser) => {
       if (firebaseUser && firebaseUser?.uid) {
-        const { connect, socket } = useSocketStore.getState();
+        const { connect } = useSocketStore.getState();
         try {
           const database_user = await getUserById(firebaseUser.uid);
           if (database_user.success && database_user.user_data) {
@@ -169,7 +194,6 @@ export const useFirebaseStore = create<firestoreInterface>((set) => ({
               user_loading: false,
             });
             connect();
-            // socket?.emit("join", { user_id: database_user.user_data.id });
           } else {
             set({ user: firebaseUser, user_loading: false });
           }

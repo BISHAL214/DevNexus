@@ -3,7 +3,7 @@
 import { Loader } from "@/components/app_components/app_loader/__loader";
 import LiquidBlob from "@/components/app_components/blobs/liquid-blob";
 import { Button } from "@/components/ui/button";
-import { loginSchema } from "@/lib/zod_schemas";
+import { loginSchema, signupSchema } from "@/lib/zod_schemas";
 import { useFirebaseStore } from "@/store/firebase_firestore";
 import {
   IconEyeClosed,
@@ -18,12 +18,15 @@ import { useEffect, useState } from "react";
 import { FieldValues, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 
 const SignInPage = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [isItSignIn, setIsItSignIn] = useState(true);
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+  const [validatedSchema, setValidatedSchema] = useState<z.Schema>(loginSchema);
   const [signingWith, setSigningWith] = useState<
     "google" | "github" | "pass" | null
   >(null);
@@ -36,11 +39,18 @@ const SignInPage = () => {
     setFocus,
     reset,
     formState: { errors },
-  } = useForm({ resolver: zodResolver(loginSchema) });
+  } = useForm({
+    resolver: zodResolver(validatedSchema),
+  });
 
   useEffect(() => {
     setFocus("email"); // Focus the email input on first render
-  }, [setFocus]);
+  }, [setFocus, isItSignIn]);
+
+  useEffect(() => {
+    const schema = isItSignIn ? loginSchema : signupSchema;
+    setValidatedSchema(schema);
+  }, [isItSignIn]);
 
   const handleAuth = async (
     provider: "google" | "github" | "pass" | "sign_up",
@@ -49,7 +59,6 @@ const SignInPage = () => {
     setLoading(true);
     try {
       let result;
-
       switch (provider) {
         case "google":
           setSigningWith("google");
@@ -81,13 +90,15 @@ const SignInPage = () => {
             toast.error("Email and Password are required");
             return;
           }
-          console.log(formData);
+          /*           console.log(formData); */
           setSigningWith("pass");
           result = await email_sign_up(formData.email, formData.password);
+          console.log(result);
           if (!result.success) {
             toast.error(result.message);
             return;
           }
+          toast.success(result.message);
           setSigningWith(null);
           reset();
           break;
@@ -95,7 +106,13 @@ const SignInPage = () => {
           throw new Error("Invalid provider");
       }
 
-      router.push(result.is_onboarded ? "/user/dashboard" : "/user/onboarding");
+      if (provider === "sign_up") {
+        router.push("/auth/verification/pending");
+        return;
+      } else
+        router.push(
+          result.is_onboarded ? "/user/dashboard" : "/user/onboarding",
+        );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "An error occurred");
     } finally {
@@ -164,7 +181,7 @@ const SignInPage = () => {
                       />
                       {errors.email && (
                         <p className="text-sm text-red-500">
-                          {errors.email.message}
+                          {errors?.email?.message?.toString()}
                         </p>
                       )}
                     </div>
@@ -192,7 +209,7 @@ const SignInPage = () => {
                       </div>
                       {errors.password && (
                         <p className="text-sm text-red-500">
-                          {errors.password.message}
+                          {errors?.password?.message?.toString()}
                         </p>
                       )}
                     </div>
@@ -203,7 +220,77 @@ const SignInPage = () => {
                     </div>
                   </>
                 ) : (
-                  <></>
+                  <>
+                    <div>
+                      <input
+                        type="email"
+                        placeholder="Email Address"
+                        {...register("email")}
+                        className="w-full py-3 px-4 bg-white/5 text-white rounded-2xl border border-white/10 focus:outline-none focus:border-white/20"
+                      />
+                      {errors.email && (
+                        <p className="text-sm text-red-500">
+                          {errors?.email?.message?.toString()}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <div className="relative">
+                        <input
+                          placeholder="Password"
+                          {...register("password")}
+                          type={passwordVisible ? "text" : "password"}
+                          className="w-full py-3 px-4 bg-white/5 text-white rounded-2xl border border-white/10 focus:outline-none focus:border-white/20"
+                        />
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                          {passwordVisible ? (
+                            <EyeIcon
+                              className="w-5 h-5 text-white cursor-pointer"
+                              onClick={() => setPasswordVisible(false)}
+                            />
+                          ) : (
+                            <IconEyeClosed
+                              className="w-5 h-5 text-white cursor-pointer"
+                              onClick={() => setPasswordVisible(true)}
+                            />
+                          )}
+                        </div>
+                      </div>
+                      {errors.password && (
+                        <p className="text-sm text-red-500">
+                          {errors?.password?.message?.toString()}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <div className="relative">
+                        <input
+                          placeholder="Confirm Password"
+                          {...register("confirmPassword")}
+                          type={confirmPasswordVisible ? "text" : "password"}
+                          className="w-full py-3 px-4 bg-white/5 text-white rounded-2xl border border-white/10 focus:outline-none focus:border-white/20"
+                        />
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                          {confirmPasswordVisible ? (
+                            <EyeIcon
+                              className="w-5 h-5 text-white cursor-pointer"
+                              onClick={() => setConfirmPasswordVisible(false)}
+                            />
+                          ) : (
+                            <IconEyeClosed
+                              className="w-5 h-5 text-white cursor-pointer"
+                              onClick={() => setConfirmPasswordVisible(true)}
+                            />
+                          )}
+                        </div>
+                      </div>
+                      {errors.password && (
+                        <p className="text-sm text-red-500">
+                          {errors?.confirmPassword?.message?.toString()}
+                        </p>
+                      )}
+                    </div>
+                  </>
                 )}
                 <Button
                   type="submit"
@@ -232,7 +319,7 @@ const SignInPage = () => {
                   className="flex items-center justify-center w-full py-3 px-4 bg-white/5 text-white rounded-2xl 
                   border border-white/10 hover:bg-white/10 transition-all duration-200 space-x-3"
                 >
-                  {loading ? (
+                  {loading && signingWith === "google" ? (
                     <Loader className="text-white" />
                   ) : (
                     <IconBrandGoogle className="w-5 h-5 text-white" />
@@ -245,7 +332,7 @@ const SignInPage = () => {
                   className="flex items-center justify-center w-full py-3 px-4 bg-white/5 text-white rounded-2xl 
                   border border-white/10 hover:bg-white/10 transition-all duration-200 space-x-3"
                 >
-                  {loading ? (
+                  {loading && signingWith === "github" ? (
                     <Loader className="text-white" />
                   ) : (
                     <IconBrandGithub className="w-5 h-5 text-white" />

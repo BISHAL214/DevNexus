@@ -15,7 +15,11 @@ const Navbar = ({
   const pathname = usePathname();
 
   // Hide Navbar on these routes
-  const hideNavbarRoutes = ["/auth/signin", "/user/onboarding"];
+  const hideNavbarRoutes = [
+    "/auth/signin",
+    "/auth/verification/pending",
+    "/user/onboarding",
+  ];
   const shouldShowNavbar = !hideNavbarRoutes.includes(pathname);
 
   return shouldShowNavbar ? (
