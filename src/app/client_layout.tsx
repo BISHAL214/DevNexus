@@ -99,11 +99,13 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
       />
       {children}
       <Toaster />
-      <MobileDockNavigation
-        unreadNotificationCount={unreadCount}
-        showNotificationBadge={showNotificationBadge}
-        setShowNotificationBadge={setShowNotificationBadge}
-      />
+      {user && (
+        <MobileDockNavigation
+          unreadNotificationCount={unreadCount}
+          showNotificationBadge={showNotificationBadge}
+          setShowNotificationBadge={setShowNotificationBadge}
+        />
+      )}
       <AuthListener />
     </SocketProvider>
   );

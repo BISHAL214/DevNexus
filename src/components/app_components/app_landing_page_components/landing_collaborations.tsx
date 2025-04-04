@@ -1,22 +1,22 @@
-"use client"
+"use client";
 
-import { motion, useAnimation } from "framer-motion"
-import { Code, Rocket, Users, Zap } from "lucide-react"
-import { useEffect } from "react"
-import { useInView } from "react-intersection-observer"
+import { motion, useAnimation } from "framer-motion";
+import { Code, Rocket, Users, Zap } from "lucide-react";
+import { useEffect } from "react";
+import { useInView } from "react-intersection-observer";
 
 export const LandingPageCollaborationsSection = () => {
-  const controls = useAnimation()
+  const controls = useAnimation();
   const [ref, inView] = useInView({
     triggerOnce: true,
     threshold: 0.1,
-  })
+  });
 
   useEffect(() => {
     if (inView) {
-      controls.start("visible")
+      controls.start("visible");
     }
-  }, [controls, inView])
+  }, [controls, inView]);
 
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -28,12 +28,12 @@ export const LandingPageCollaborationsSection = () => {
         staggerChildren: 0.2,
       },
     },
-  }
+  };
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
-  }
+  };
 
   const steps = [
     {
@@ -56,11 +56,16 @@ export const LandingPageCollaborationsSection = () => {
       title: "Grow",
       description: "Expand your network and enhance your skills",
     },
-  ]
+  ];
 
   return (
     <section ref={ref} className="py-20 relative z-10">
-      <motion.div className="container mx-auto px-4" initial="hidden" animate={controls} variants={containerVariants}>
+      <motion.div
+        className="container mx-auto px-4"
+        initial="hidden"
+        animate={controls}
+        variants={containerVariants}
+      >
         <motion.h2
           className="text-3xl font-bold text-center mb-12 bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 via-white/90 to-rose-300"
           variants={itemVariants}
@@ -68,16 +73,23 @@ export const LandingPageCollaborationsSection = () => {
           Your Journey to Successful Collaboration
         </motion.h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {steps.map((step, index) => (
-            <motion.div key={step.title} className="text-center" variants={itemVariants}>
-              <div className="bg-white/5 rounded-full p-4 inline-block mb-4 text-white">{step.icon}</div>
-              <h3 className="text-xl font-semibold mb-2 text-white">{step.title}</h3>
+          {steps.map((step) => (
+            <motion.div
+              key={step.title}
+              className="text-center"
+              variants={itemVariants}
+            >
+              <div className="bg-global-gradient-1 backdrop-blur-md rounded-full p-4 inline-block mb-4 text-white">
+                {step.icon}
+              </div>
+              <h3 className="text-xl font-semibold mb-2 text-white">
+                {step.title}
+              </h3>
               <p className="text-white/60">{step.description}</p>
             </motion.div>
           ))}
         </div>
       </motion.div>
     </section>
-  )
-}
-
+  );
+};

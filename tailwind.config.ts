@@ -13,6 +13,10 @@ export default {
         ds: ["Dancing Script", "serif"],
         playwrite: ["Playwrite IN", "serif"],
       },
+      backgroundImage: {
+        "global-gradient-1":
+          "linear-gradient(to bottom right, #2E1065, #0F172A, #1E1B4B)",
+      },
       colors: {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",

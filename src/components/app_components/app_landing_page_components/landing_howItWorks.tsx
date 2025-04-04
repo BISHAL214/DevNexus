@@ -95,7 +95,7 @@ const LandingPageHowItworksSection = (props: Props) => {
               >
                 <div className="relative mb-4">
                   <motion.div
-                    className="w-16 h-16 rounded-full bg-blue-500 flex items-center justify-center"
+                    className="w-16 h-16 rounded-full bg-global-gradient-1 flex items-center justify-center"
                     variants={itemVariants}
                   >
                     <step.icon className="text-2xl text-white" />

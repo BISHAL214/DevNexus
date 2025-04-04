@@ -62,7 +62,7 @@ function ElegantShape({
             "backdrop-blur-[2px] border-2 border-white/[0.15]",
             "shadow-[0_8px_32px_0_rgba(255,255,255,0.1)]",
             "after:absolute after:inset-0 after:rounded-full",
-            "after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.2),transparent_70%)]"
+            "after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.2),transparent_70%)]",
           )}
         />
       </motion.div>
@@ -81,7 +81,7 @@ const GeometricBackground: React.FC<GeometricBackgroundProps> = ({
 }) => {
   return (
     <div
-      className={`relative min-h-screen w-full overflow-hidden bg-[#030303] ${className}`}
+      className={`relative min-h-screen w-full overflow-hidden bg-global-gradient-1 ${className}`}
     >
       <div className="fixed inset-0 bg-gradient-to-br from-indigo-500/[0.05] via-transparent to-rose-500/[0.05] blur-3xl" />
 

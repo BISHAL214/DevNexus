@@ -12,7 +12,6 @@ const pacifico = Pacifico({
   variable: "--font-pacifico",
 });
 
-
 export const LandingPageTestimonialSection = () => {
   const controls = useAnimation();
   const [ref, inView] = useInView({
@@ -76,16 +75,20 @@ export const LandingPageTestimonialSection = () => {
           className="text-3xl font-bold text-center mb-12 bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 via-white/90 to-rose-300"
           variants={itemVariants}
         >
-          What <span className={`${pacifico.className} text-4xl`}>Developers</span> Are Saying
+          What{" "}
+          <span className={`${pacifico.className} text-4xl`}>Developers</span>{" "}
+          Are Saying
         </motion.h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {testimonials.map((testimonial, index) => (
+          {testimonials.map((testimonial) => (
             <motion.div
               key={testimonial.name}
-              className="bg-white/5 rounded-lg p-6 hover:bg-white/10 transition-colors"
+              className="bg-white/5 backdrop-blur-md rounded-lg p-6 hover:bg-white/10 transition-colors"
               variants={itemVariants}
             >
-              <p className="text-white/80 mb-4">"{testimonial.quote}"</p>
+              <p className="text-white/80 mb-4">
+                &#34;{testimonial.quote}&#34;
+              </p>
               <div>
                 <p className="font-semibold text-white">{testimonial.name}</p>
                 <p className="text-white/60">{testimonial.role}</p>

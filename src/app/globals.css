@@ -1,5 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Playwrite+IN:wght@100..400&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Playwrite+IN:wght@100..400&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -94,7 +94,6 @@ body {
   }
 }
 
-
 /* styles/globals.css */
 ::-webkit-scrollbar {
   width: 4px; /* Adjust scrollbar width */
@@ -113,4 +112,6 @@ body {
   background: #555;
 }
 
-
+.bg-custom-gradient {
+  @apply bg-gradient-to-br from-purple-950 via-slate-900 to-indigo-950;
+}
