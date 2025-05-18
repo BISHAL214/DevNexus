@@ -1,3 +1,4 @@
+// import { checkIfEmailExistsInFirebaseAuth } from "@/firebase/__helpers";
 import {
   firebase_auth,
   github_provider,
@@ -13,11 +14,7 @@ import {
   signOut,
 } from "firebase/auth";
 import { create } from "zustand";
-import {
-  getUserById,
-  sendEmailVerificationOtp,
-  updateUserCache,
-} from "../../actions/user_apis";
+import { getUserById, updateUserCache } from "../../actions/user_apis";
 import { useSocketStore } from "./socket_socketstore";
 import { ZodString } from "zod";
 
@@ -32,15 +29,12 @@ export const useFirebaseStore = create<firestoreInterface>((set) => ({
     return signOut(firebase_auth);
   },
 
-  email_sign_in: async (
-    email: string | ZodString,
-    password: string | ZodString,
-  ) => {
+  email_sign_in: async (email: string | ZodString, password: string | ZodString) => {
     try {
       const result = await signInWithEmailAndPassword(
         firebase_auth,
         email as string,
-        password as string,
+        password as string
       );
       if (result && result?.user) {
         const uid = result.user.uid;
@@ -56,7 +50,6 @@ export const useFirebaseStore = create<firestoreInterface>((set) => ({
       }
     } catch (error: any) {
       console.log(error.message);
-      console.log(error);
       return {
         success: false,
         message: error.message ? error.message : "Something Went Wrong.",
@@ -64,64 +57,39 @@ export const useFirebaseStore = create<firestoreInterface>((set) => ({
     }
   },
 
-  email_sign_up: async (
-    email: string | ZodString,
-    password: string | ZodString,
-  ) => {
+  email_sign_up: async (email: string | ZodString, password: string | ZodString) => {
     try {
-      // // check the email is alreayd registered or not
+      // check the email is alreayd registered or not
       // const { exists, exists_method, error } =
-      //   await checkIfEmailExistsInFirebaseAuth(email as string, firebase_auth);
-      //
+      //   await checkIfEmailExistsInFirebaseAuth(email, firebase_auth);
+
       // if (exists && exists_method && !error) {
       //   let all_methods: string = "";
       //   exists_method.forEach((method: string) => {
       //     // const MethodIcon  = methodIconMap[method as keyof typeof methodIconMap];
       //     all_methods += method + ", ";
       //   });
-      //
+
       //   return {
       //     success: false,
       //     message: `Email already registered with these methods: ${all_methods}`,
-      //     user: null,
       //   };
       // }
-      //
+
       const result = await createUserWithEmailAndPassword(
         firebase_auth,
         email as string,
-        password as string,
+        password as string
       );
       if (result && result?.user) {
-        const { success, message } = await sendEmailVerificationOtp(
-          result?.user?.email as string,
-        );
-        if (!success) {
-          return {
-            success: false,
-            message: message,
-            user: null,
-          };
-        }
-        return {
-          success: true,
-          message: message,
-          user: result.user,
-        };
+        await sendEmailVerification(result.user);
+        return { user: result.user };
       }
     } catch (error: any) {
-      console.log(error?.message);
-      if (error?.message === "Firebase: Error (auth/email-already-in-use).") {
-        return {
-          success: false,
-          message: "Email already in use.",
-          user: null,
-        };
-      }
+      console.log(error.message);
       return {
         success: false,
-        message: error?.message ? error?.message : "Something Went Wrong.",
-        user: null,
+        message: error.message ? error.message : "Something Went Wrong.",
       };
     }
   },
@@ -185,7 +153,7 @@ export const useFirebaseStore = create<firestoreInterface>((set) => ({
     console.log("Listening to auth changes");
     onAuthStateChanged(firebase_auth, async (firebaseUser) => {
       if (firebaseUser && firebaseUser?.uid) {
-        const { connect } = useSocketStore.getState();
+        const { connect, socket } = useSocketStore.getState();
         try {
           const database_user = await getUserById(firebaseUser.uid);
           if (database_user.success && database_user.user_data) {
@@ -194,6 +162,7 @@ export const useFirebaseStore = create<firestoreInterface>((set) => ({
               user_loading: false,
             });
             connect();
+            // socket?.emit("join", { user_id: database_user.user_data.id });
           } else {
             set({ user: firebaseUser, user_loading: false });
           }
@@ -237,7 +206,7 @@ export const useFirebaseStore = create<firestoreInterface>((set) => ({
         "🔄 Starting cache refresh for user:",
         userId,
         "at:",
-        new Date().toISOString(),
+        new Date().toISOString()
       );
       const startTime = performance.now();
 
@@ -249,14 +218,14 @@ export const useFirebaseStore = create<firestoreInterface>((set) => ({
       const endTime = performance.now();
       console.log(
         `⏱️ Cache refresh took ${((endTime - startTime) / 1000).toFixed(
-          2,
-        )} seconds`,
+          2
+        )} seconds`
       );
 
       if (success && uppdatedUser) {
         console.log(
           "✅ Cache refresh successful, updating local state with data:",
-          uppdatedUser.id,
+          uppdatedUser.id
         );
         // First verify we have all required user data
         if (!uppdatedUser.id || !uppdatedUser.firebase_uid) {

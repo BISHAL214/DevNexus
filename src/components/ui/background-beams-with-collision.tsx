@@ -1,7 +1,7 @@
 "use client";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, Ref, RefObject } from "react";
 
 export const BackgroundBeamsWithCollision = ({
   children,
@@ -10,8 +10,8 @@ export const BackgroundBeamsWithCollision = ({
   children: React.ReactNode;
   className?: string;
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const parentRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<unknown>(null);
+  const parentRef = useRef<unknown>(null);
 
   const beams = [
     {
@@ -68,7 +68,7 @@ export const BackgroundBeamsWithCollision = ({
 
   return (
     <div
-      ref={parentRef}
+      ref={parentRef as Ref<HTMLDivElement>}
       className={cn(
         "min-h-screen bg-black relative flex items-center w-full justify-center overflow-hidden",
         // h-screen if you want bigger
@@ -79,14 +79,14 @@ export const BackgroundBeamsWithCollision = ({
         <CollisionMechanism
           key={beam.initialX + "beam-idx"}
           beamOptions={beam}
-          containerRef={containerRef}
-          parentRef={parentRef}
+          containerRef={containerRef as RefObject<HTMLDivElement>}
+          parentRef={parentRef as RefObject<HTMLDivElement>}
         />
       ))}
 
       {children}
       <div
-        ref={containerRef}
+        ref={containerRef as Ref<HTMLDivElement>}
         className="absolute bottom-0 bg-neutral-100 w-full inset-x-0 pointer-events-none"
         style={{
           boxShadow:

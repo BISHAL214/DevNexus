@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { HomeIcon } from "lucide-react";
 import Link from "next/link";
@@ -70,7 +69,7 @@ export default function NotFound() {
                 Page not found
               </h2>
               <p className="mx-auto max-w-xs text-muted-foreground sm:max-w-md">
-                Sorry, we couldn't find the page you're looking for. The page
+                Sorry, we couldn&apos;t find the page you&apos;re looking for. The page
                 might have been removed or the link might be broken.
               </p>
 

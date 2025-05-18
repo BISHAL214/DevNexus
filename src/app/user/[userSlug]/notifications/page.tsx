@@ -2,9 +2,9 @@ import GeometricBackground from "@/components/app_components/app_background_patt
 import UserNotificationsMain from "@/components/app_components/app_notifications/app_notifications_main";
 import React from "react";
 
-type Props = {};
+// type Props = {};
 
-const UserNotificationsPage = (props: Props) => {
+const UserNotificationsPage = () => {
   return (
     <GeometricBackground>
       <div className="min-h-screen bg-transparent py-16">

@@ -1,105 +1,125 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import pacifico from "@/constants/font_pacifico"
-import { motion } from "framer-motion"
-import { useEffect, useState, useCallback } from "react"
-import ExplorePageSearchFilters from "./app_search_filters"
-import { Loader } from "../app_loader/__loader"
-import { useFirebaseStore } from "@/store/firebase_firestore"
-import { type RecommendDevsType, useRecommendDevs } from "@/hooks/use-recommend_devs"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { MapPin, UserPlus } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { useRouter } from "next/navigation"
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
-import { type Developer, useAllDevs } from "@/hooks/use-all-devs"
-import { toast } from "sonner"
-import { filter_all_devs } from "@/lib/filter_all_devs"
-import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import pacifico from "@/constants/font_pacifico";
+import { motion } from "framer-motion";
+import { useEffect, useState, useCallback } from "react";
+import ExplorePageSearchFilters from "./app_search_filters";
+import { Loader } from "../app_loader/__loader";
+import { useFirebaseStore } from "@/store/firebase_firestore";
 import {
-	Pagination,
-	PaginationContent,
-	PaginationItem,
-	PaginationLink,
-	PaginationNext,
-	PaginationPrevious,
-	PaginationEllipsis,
-} from "@/components/ui/pagination"
-import { useInfiniteScroll } from "@/hooks/use-infinite_scroll"
-import { forwardRef } from "react"
+  type RecommendDevsType,
+  useRecommendDevs,
+} from "@/hooks/use-recommend_devs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { MapPin, UserPlus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { useRouter } from "next/navigation";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import { type Developer, useAllDevs } from "@/hooks/use-all-devs";
+import { toast } from "sonner";
+import { filter_all_devs } from "@/lib/filter_all_devs";
+import { Separator } from "@/components/ui/separator";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from "@/components/ui/pagination";
+import { useInfiniteScroll } from "@/hooks/use-infinite_scroll";
+import { forwardRef } from "react";
+import Image from "next/image";
+import { Skill } from "@/interfaces/app_database_models";
 
 export default function ExplorePageMain() {
-  const [hasMore, setHasMore] = useState<boolean>(true)
-  const [filteredAllDevs, setFilteredAllDevs] = useState<Developer[]>([])
-  const [displayedDevs, setDisplayedDevs] = useState<Developer[]>([])
+  const [hasMore, setHasMore] = useState<boolean>(true);
+  const [filteredAllDevs, setFilteredAllDevs] = useState<Developer[]>([]);
+  const [displayedDevs, setDisplayedDevs] = useState<Developer[]>([]);
 
-  const [currentPage, setCurrentPage] = useState<number>(1)
-  const [itemsPerPage, setItemsPerPage] = useState<number>(8)
-  const [isMobile, setIsMobile] = useState<boolean>(false)
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(8);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
 
-  const { user_loading, user } = useFirebaseStore()
-  const { devs, devsLoading, devsError } = useRecommendDevs()
-  const { all_developers, all_devs_loading, all_devs_error } = useAllDevs()
+  const { user_loading, user } = useFirebaseStore();
+  const { devs, devsLoading, devsError } = useRecommendDevs();
+  const { all_developers, all_devs_loading, all_devs_error } = useAllDevs();
 
-  const totalPages = Math.ceil(filteredAllDevs.length / itemsPerPage)
+  const totalPages = Math.ceil(filteredAllDevs.length / itemsPerPage);
 
   const loadMoreDevs = useCallback(() => {
-    const nextDevs = filteredAllDevs.slice(displayedDevs.length, displayedDevs.length + itemsPerPage)
-    setDisplayedDevs((prev) => [...prev, ...nextDevs])
-    setHasMore(displayedDevs.length + nextDevs.length < filteredAllDevs.length)
-  }, [filteredAllDevs, displayedDevs, itemsPerPage])
+    const nextDevs = filteredAllDevs.slice(
+      displayedDevs.length,
+      displayedDevs.length + itemsPerPage
+    );
+    setDisplayedDevs((prev) => [...prev, ...nextDevs]);
+    setHasMore(displayedDevs.length + nextDevs.length < filteredAllDevs.length);
+  }, [filteredAllDevs, displayedDevs, itemsPerPage]);
 
-  const { lastElementRef, loading, setLoading } = useInfiniteScroll(loadMoreDevs, hasMore)
+  const { lastElementRef, loading } = useInfiniteScroll(loadMoreDevs, hasMore);
 
   useEffect(() => {
     const handleResize = () => {
-      const mobile = window.innerWidth < 768 // md breakpoint
-      setIsMobile(mobile)
+      const mobile = window.innerWidth < 768; // md breakpoint
+      setIsMobile(mobile);
       if (window.innerWidth >= 1280) {
-        setItemsPerPage(8) // 2x4 grid
+        setItemsPerPage(8); // 2x4 grid
       } else if (window.innerWidth >= 1024) {
-        setItemsPerPage(6) // 2x3 grid
+        setItemsPerPage(6); // 2x3 grid
       } else if (window.innerWidth >= 768) {
-        setItemsPerPage(4) // 2x2 grid
+        setItemsPerPage(4); // 2x2 grid
       } else {
-        setItemsPerPage(6) // 6x1 grid for small and extra small devices (infinite scroll)
+        setItemsPerPage(6); // 6x1 grid for small and extra small devices (infinite scroll)
       }
-    }
+    };
 
-    handleResize()
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
-  }, [])
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
-    if(!user && all_developers.length > 0) {
-      setFilteredAllDevs(all_developers)
-      setDisplayedDevs(all_developers.slice(0, itemsPerPage))
-      setHasMore(all_developers.length > itemsPerPage)
+    if (!user && all_developers.length > 0) {
+      setFilteredAllDevs(all_developers);
+      setDisplayedDevs(all_developers.slice(0, itemsPerPage));
+      setHasMore(all_developers.length > itemsPerPage);
     }
     if (devs.length > 0) {
-      const filtered_all_devs = filter_all_devs(all_developers, devs, user ? user?.id : "")
-      setFilteredAllDevs(filtered_all_devs)
-      setDisplayedDevs(filtered_all_devs.slice(0, itemsPerPage))
-      setHasMore(filtered_all_devs.length > itemsPerPage)
+      const filtered_all_devs = filter_all_devs(
+        all_developers,
+        devs,
+        user ? user?.id : ""
+      );
+      setFilteredAllDevs(filtered_all_devs);
+      setDisplayedDevs(filtered_all_devs.slice(0, itemsPerPage));
+      setHasMore(filtered_all_devs.length > itemsPerPage);
     }
-  }, [devs, all_developers, user, itemsPerPage])
+  }, [devs, all_developers, user, itemsPerPage]);
 
   useEffect(() => {
     if (!isMobile) {
-      const startIndex = (currentPage - 1) * itemsPerPage
-      setDisplayedDevs(filteredAllDevs.slice(startIndex, startIndex + itemsPerPage))
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      setDisplayedDevs(
+        filteredAllDevs.slice(startIndex, startIndex + itemsPerPage)
+      );
     }
-  }, [currentPage, itemsPerPage, filteredAllDevs, isMobile])
+  }, [currentPage, itemsPerPage, filteredAllDevs, isMobile]);
 
   if (devsError) {
-    toast.error(devsError || "Error fetching recommended developers")
+    toast.error(devsError || "Error fetching recommended developers");
   }
 
   if (all_devs_error) {
-    toast.error(all_devs_error || "Error fetching all developers")
+    toast.error(all_devs_error || "Error fetching all developers");
   }
 
   return (
@@ -127,7 +147,10 @@ export default function ExplorePageMain() {
               >
                 <CarouselContent className="-ml-4">
                   {devs?.map((dev, index) => (
-                    <CarouselItem key={dev.id} className="pl-4 basis-full md:basis-1/2 lg:basis-1/3 xl:basis-1/4">
+                    <CarouselItem
+                      key={dev.id}
+                      className="pl-4 basis-full md:basis-1/2 lg:basis-1/3 xl:basis-1/4"
+                    >
                       <DeveloperCard featured index={index} dev={dev} />
                     </CarouselItem>
                   ))}
@@ -140,7 +163,7 @@ export default function ExplorePageMain() {
                 </div>
               </Carousel>
             </section>
-            {(!all_devs_loading && user) && <Separator />}
+            {!all_devs_loading && user && <Separator />}
             <section>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {displayedDevs.map((dev, index) => (
@@ -149,7 +172,9 @@ export default function ExplorePageMain() {
                     index={index}
                     dev={dev}
                     featured={false}
-                    ref={index === displayedDevs.length - 1 ? lastElementRef : null}
+                    ref={
+                      index === displayedDevs.length - 1 ? lastElementRef : null
+                    }
                   />
                 ))}
               </div>
@@ -170,19 +195,21 @@ export default function ExplorePageMain() {
                               ? "cursor-pointer text-white hover:bg-gray-700 hover:text-white"
                               : "cursor-default text-gray-600 hover:bg-transparent hover:text-gray-600"
                           } `}
-                          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                          onClick={() =>
+                            setCurrentPage((prev) => Math.max(prev - 1, 1))
+                          }
                         />
                       </PaginationItem>
                       {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                        let pageNumber
+                        let pageNumber;
                         if (totalPages <= 5) {
-                          pageNumber = i + 1
+                          pageNumber = i + 1;
                         } else if (currentPage <= 3) {
-                          pageNumber = i + 1
+                          pageNumber = i + 1;
                         } else if (currentPage >= totalPages - 2) {
-                          pageNumber = totalPages - 4 + i
+                          pageNumber = totalPages - 4 + i;
                         } else {
-                          pageNumber = currentPage - 2 + i
+                          pageNumber = currentPage - 2 + i;
                         }
                         return (
                           <PaginationItem key={i}>
@@ -194,7 +221,7 @@ export default function ExplorePageMain() {
                               {pageNumber}
                             </PaginationLink>
                           </PaginationItem>
-                        )
+                        );
                       })}
                       {totalPages > 5 && currentPage < totalPages - 2 && (
                         <PaginationItem>
@@ -209,7 +236,11 @@ export default function ExplorePageMain() {
                               : "cursor-default text-gray-600 hover:bg-transparent hover:text-gray-600"
                           } `}
                           isActive={currentPage < totalPages}
-                          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                          onClick={() =>
+                            setCurrentPage((prev) =>
+                              Math.min(prev + 1, totalPages)
+                            )
+                          }
                         />
                       </PaginationItem>
                     </PaginationContent>
@@ -221,7 +252,7 @@ export default function ExplorePageMain() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 const DeveloperCard = forwardRef(
@@ -231,13 +262,13 @@ const DeveloperCard = forwardRef(
       dev,
       index,
     }: {
-      featured?: boolean
-      dev: RecommendDevsType | Developer
-      index: number
+      featured?: boolean;
+      dev: RecommendDevsType | Developer;
+      index: number;
     },
-    ref: React.Ref<HTMLDivElement>,
+    ref: React.Ref<HTMLDivElement>
   ) => {
-    const router = useRouter()
+    const router = useRouter();
     return (
       <motion.div
         ref={ref}
@@ -253,7 +284,12 @@ const DeveloperCard = forwardRef(
           className="overflow-hidden bg-white/5 backdrop-blur-md shadow-lg transition-shadow border-none"
         >
           <div className="h-32 relative">
-            <img src={dev.cover_image || ""} alt="" className="w-full h-full object-cover" />
+            <Image
+              src={dev.cover_image || "/fallback.jpg"} // fallback if cover_image is null/undefined
+              alt="Developer cover image"
+              fill
+              className="object-cover w-full h-full"
+            />
             <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/40" />
           </div>
           <div className="p-6 relative">
@@ -268,12 +304,18 @@ const DeveloperCard = forwardRef(
             </Avatar>
             {featured && dev?.score && (
               <div className="rounded-full p-1 flex justify-center items-center h-9 absolute right-4 border border-yellow-600">
-                <span className="text-yellow-500 text-[0.78em]">{`${Math.ceil(dev?.score * 100)}%`}</span>
+                <span className="text-yellow-500 text-[0.78em]">{`${Math.ceil(
+                  dev?.score * 100
+                )}%`}</span>
               </div>
             )}
             <div className="mt-10">
-              <h3 className="text-lg font-semibold text-white capitalize line-clamp-1">{dev.name}</h3>
-              <p className="text-sm text-gray-400 capitalize line-clamp-1">{dev.headline}</p>
+              <h3 className="text-lg font-semibold text-white capitalize line-clamp-1">
+                {dev.name}
+              </h3>
+              <p className="text-sm text-gray-400 capitalize line-clamp-1">
+                {dev.headline}
+              </p>
               <div className="flex flex-wrap gap-2 mt-4 text-sm text-gray-500">
                 <div className="flex items-center gap-1">
                   <MapPin size={14} />
@@ -283,8 +325,12 @@ const DeveloperCard = forwardRef(
                 </div>
               </div>
               <div className="flex flex-wrap gap-2 mt-4">
-                {dev?.skills?.slice(0, 3).map((skill: any, i: number) => (
-                  <Badge key={skill?.id} variant="secondary" className="capitalize">
+                {dev?.skills?.slice(0, 3).map((skill: Skill) => (
+                  <Badge
+                    key={skill?.id}
+                    variant="secondary"
+                    className="capitalize"
+                  >
                     {skill?.name}
                   </Badge>
                 ))}
@@ -293,8 +339,8 @@ const DeveloperCard = forwardRef(
                 <Button
                   type="button"
                   onClick={(e) => {
-                    e.stopPropagation()
-                    console.log("clicked")
+                    e.stopPropagation();
+                    console.log("clicked");
                   }}
                   className="flex-1"
                 >
@@ -306,9 +352,8 @@ const DeveloperCard = forwardRef(
           </div>
         </Card>
       </motion.div>
-    )
-  },
-)
+    );
+  }
+);
 
-DeveloperCard.displayName = "DeveloperCard"
-
+DeveloperCard.displayName = "DeveloperCard";

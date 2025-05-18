@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogClose,
@@ -32,23 +32,23 @@ import { toast } from "sonner";
 import { getDevelopersBySkills } from "../../../../actions/user_apis";
 import { Loader } from "../app_loader/__loader";
 
-type Props = {};
+// type Props = {};
 
-const ExplorePageSearchFilters = (props: Props) => {
+const ExplorePageSearchFilters = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [experienceLevel, setExperienceLevel] = useState([0, 50]);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [isFilterDivOpen, setIsFilterDivOpen] = useState(false);
 
-  const {
-    location,
-    handleLocationChange,
-    suggestions,
-    setSelectedSuggestion,
-    selectedSuggestion,
-    location_loading,
-    setLocation,
-  } = useSearchFilters();
+  // const {
+  //   location,
+  //   handleLocationChange,
+  //   suggestions,
+  //   setSelectedSuggestion,
+  //   selectedSuggestion,
+  //   location_loading,
+  //   setLocation,
+  // } = useSearchFilters();
 
   const {
     skill,
@@ -59,7 +59,7 @@ const ExplorePageSearchFilters = (props: Props) => {
     skillSuggestionLoading,
   } = useSuggestSkills();
 
-  const { topSkillsArray, loading, error } = useGetTopSkills();
+  const { topSkillsArray, loading } = useGetTopSkills();
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,11 +79,11 @@ const ExplorePageSearchFilters = (props: Props) => {
     // console.log("Searching for:", searchTerm);
   };
 
-  const handleSkillSelect = (skill: string) => {
-    setSelectedSkills((prev) =>
-      prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill]
-    );
-  };
+  // const handleSkillSelect = (skill: string) => {
+  //   setSelectedSkills((prev) =>
+  //     prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill]
+  //   );
+  // };
 
   return (
     <>

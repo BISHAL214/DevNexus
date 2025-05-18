@@ -12,7 +12,7 @@ interface AsyncState<T> {
 function useAsync<T>(
   asyncFunction: (...args: any[]) => Promise<T>, // Accept a function that returns a Promise<T>
   initialData: T | null = null,
-  dependencies: any[] = [] // Optional dependencies array for useEffect
+  dependencies: any[] = [], // Optional dependencies array for useEffect
 ): AsyncState<T> {
   const [data, setData] = useState<T | null>(initialData);
   const [loading, setLoading] = useState(false);
@@ -35,7 +35,7 @@ function useAsync<T>(
         setLoading(false);
       }
     },
-    [asyncFunction]
+    [asyncFunction],
   ); // Add asyncFunction to the dependency array
 
   useEffect(() => {

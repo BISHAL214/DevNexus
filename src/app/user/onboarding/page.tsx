@@ -1,6 +1,6 @@
 "use client";
 import GeometricBackground from "@/components/app_components/app_background_pattern/app_geometric_background";
-import BackgroundPattern from "@/components/app_components/app_background_pattern/background_pattern";
+//import BackgroundPattern from "@/components/app_components/app_background_pattern/background_pattern";
 import { Loader } from "@/components/app_components/app_loader/__loader";
 import UserOnboardingForm from "@/components/app_components/app_user_onboarding/user_onboardingForm";
 import { useFirebaseStore } from "@/store/firebase_firestore";

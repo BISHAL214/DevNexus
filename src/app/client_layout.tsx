@@ -15,12 +15,10 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
   const { socket } = useSocketStore();
   const {
     unreadCount,
-    notifications,
     fetchNotifications,
     listenForNotifications,
     listenForConnectionAccept,
     listenForConnectionDecline,
-    pendingUserRefreshes,
   } = useNotificationStore();
 
   const [showNotificationBadge, setShowNotificationBadge] =
@@ -44,11 +42,13 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
     if (user?.id) {
       fetchNotifications(user.id);
     }
-  }, [user?.id]);
+  }, [user?.id, fetchNotifications]);
 
   // Setup all socket listeners
+  const currentListeners = listenerRefs.current 
   useEffect(() => {
     if (!socket || !user) return;
+
 
     // Helper to setup a listener with proper cleanup tracking
     const setupListener = (
@@ -56,13 +56,13 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
       listenerFn:
         | typeof listenForNotifications
         | typeof listenForConnectionAccept
-        | typeof listenForConnectionDecline,
+        | typeof listenForConnectionDecline
     ) => {
-      if (!listenerRefs.current[type].registered) {
+      if (!currentListeners[type].registered) {
         const cleanup = listenerFn(socket, user);
         if (cleanup) {
-          listenerRefs.current[type].cleanup = cleanup;
-          listenerRefs.current[type].registered = true;
+          currentListeners[type].cleanup = cleanup;
+          currentListeners[type].registered = true;
         }
       }
     };
@@ -75,7 +75,7 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
     // Cleanup function
     return () => {
       // Cleanup all listeners
-      Object.values(listenerRefs.current).forEach((ref) => {
+      Object.values(currentListeners).forEach((ref) => {
         if (ref.cleanup) {
           ref.cleanup();
           ref.registered = false;
@@ -83,7 +83,13 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
         }
       });
     };
-  }, [socket, user]);
+  }, [
+    socket,
+    user,
+    listenForNotifications,
+    listenForConnectionAccept,
+    listenForConnectionDecline,
+  ]);
 
   // Update badge when unread notifications exist
   useEffect(() => {
