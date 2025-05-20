@@ -217,7 +217,7 @@ export default function AppNavbar({
 
                       <div className="flex items-center gap-2 text-white px-2 py-2 hover:bg-gray-900 rounded-md cursor-pointer font-sans tracking-wide">
                         <Link
-                          href={`/me/projects`}
+                          href={`/user/${user?.slug}/projects`}
                           className="flex justify-between w-full"
                         >
                           Projects
