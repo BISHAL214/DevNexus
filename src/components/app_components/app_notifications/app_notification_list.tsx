@@ -1,6 +1,5 @@
 import { AnimatePresence } from "framer-motion";
 import { NotificationItem } from "./app_notifications_items";
-import { log } from "node:console";
 
 export interface Notification {
   id: string;

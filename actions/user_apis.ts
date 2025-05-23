@@ -609,13 +609,13 @@ export const getRecommendedDevelopers = async (userId: string) => {
       };
     }
 
-    const otherDevelopers = allDevelopers.filter((dev) => dev.id !== userId); // Exclude current user
+    const otherDevelopers = allDevelopers.filter((dev: any) => dev.id !== userId); // Exclude current user
 
     // console.log("Embeddings type:", typeof otherDevelopers[0]?.embedding);
 
     // Map with async calls and await using Promise.all
     const recommendations = await Promise.all(
-      otherDevelopers.map(async (dev) => ({
+      otherDevelopers.map(async (dev: any) => ({
         ...dev,
         score:
           user.embedding && dev.embedding
@@ -629,9 +629,9 @@ export const getRecommendedDevelopers = async (userId: string) => {
 
     // Sort by highest similarity score
     const sortedRecommendations = recommendations
-      .sort((a, b) => b.score - a.score)
+      .sort((a: any, b: any) => b.score - a.score)
       .slice(0, 6) // Get top 6 recommendations
-      .map((dev) => ({
+      .map((dev: any) => ({
         id: dev.id,
         name: dev.name,
         avatar: dev.avatar,
@@ -691,7 +691,7 @@ export const getAllDevelopers = async () => {
       };
     }
 
-    const developers = allDevelopers.map((dev) => ({
+    const developers = allDevelopers.map((dev: any) => ({
       id: dev.id,
       name: dev.name,
       avatar: dev.avatar,
@@ -842,7 +842,7 @@ export const getTopskills = async () => {
 
     // Filter skills with at least 5 users
     const filteredSkills = topSkills
-      .filter((skill) => skill.users.length >= 3)
+      .filter((skill: any) => skill.users.length >= 3)
       .slice(0, 10);
 
     if (filteredSkills.length === 0) {

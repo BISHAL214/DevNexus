@@ -38,7 +38,7 @@ export const useRecommendDevs = () => {
           await getRecommendedDevelopers(user.id);
 
         if (success) {
-          const devs = recommendedDevelopers.map((dev) => ({
+          const devs = recommendedDevelopers.map((dev: any) => ({
             id: dev.id,
             name: dev.name,
             cover_image: dev.cover_image || "",

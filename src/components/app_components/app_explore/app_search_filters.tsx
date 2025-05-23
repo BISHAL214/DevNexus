@@ -72,8 +72,8 @@ const ExplorePageSearchFilters = () => {
       console.log("Error fetching developers");
       return toast.error(message || "Error fetching developers");
     }
-    const skills = developers?.map((dev) => {
-      return dev?.skills?.map((skill) => skill.name);
+    const skills = developers?.map((dev: any) => {
+      return dev?.skills?.map((skill: any) => skill.name);
     });
     console.log(skills);
     // console.log("Searching for:", searchTerm);

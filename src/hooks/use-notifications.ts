@@ -43,7 +43,7 @@ export const useNotifications = () => {
         setNotificationCount(notifications.length);
 
         // Count only unread notifications
-        const unreadNotifications = notifications.filter((n) => !n.isRead);
+        const unreadNotifications = notifications.filter((n: any) => !n.isRead);
         setUnreadCount(unreadNotifications.length);
       } else {
         setNotificationsError(message);

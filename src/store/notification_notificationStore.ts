@@ -80,7 +80,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
           return {
             notifications,
             notificationCount: notifications.length,
-            unreadCount: notifications.filter((n) => !n.isRead).length,
+            unreadCount: notifications.filter((n: any) => !n.isRead).length,
             activeNotifications: filteredNotifications, // Ensure it's updated initially
           };
         });

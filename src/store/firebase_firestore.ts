@@ -151,7 +151,7 @@ export const useFirebaseStore = create<firestoreInterface>((set) => ({
   listen_to_auth_changes: () => {
     set({ user_loading: true });
     console.log("Listening to auth changes");
-    onAuthStateChanged(firebase_auth, async (firebaseUser) => {
+    onAuthStateChanged(firebase_auth, async (firebaseUser: any) => {
       if (firebaseUser && firebaseUser?.uid) {
         const { connect, socket } = useSocketStore.getState();
         try {
